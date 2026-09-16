@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Round {{ round_item.number }} - Battle March{% endblock %}
+
+{% block content %}
+        <p><a href="/rounds">Back to rounds</a></p>
+        <section class="page-header">
+            <div class="eyebrow">Round {{ round_item.number }}</div>
+            <h1>{{ round_item.points_limit }} point battles</h1>
+        </section>
+
+        <h2 class="h4">Matches</h2>
+        {% if matches %}
+            <div class="table-panel">
+            <table class="table table-striped align-middle">
+                <thead>
+                    <tr>
+                        <th>Player 1</th>
+                        <th>Score</th>
+                        <th>Player 2</th>
+                        <th>Score</th>
+                        <th>Result</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for match_row in matches %}
+                        {% set result_class = "result-draw" if match_row.result == "Draw" else "result-pending" if match_row.result == "Pending" else "result-won" %}
+                        <tr>
+                            <td><a class="fw-semibold" href="/players/{{ match_row.match.player_one.id }}">{{ match_row.match.player_one.name }}</a></td>
+                            <td>{{ match_row.match.player_one_score if match_row.match.player_one_score is not none else "Not entered" }}</td>
+                            <td><a class="fw-semibold" href="/players/{{ match_row.match.player_two.id }}">{{ match_row.match.player_two.name }}</a></td>
+                            <td>{{ match_row.match.player_two_score if match_row.match.player_two_score is not none else "Not entered" }}</td>
+                            <td><span class="result-badge {{ result_class }}">{{ match_row.result }}</span></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </div>
+        {% else %}
+            <div class="card"><div class="card-body">No matches have been scheduled.</div></div>
+        {% endif %}
+{% endblock %}

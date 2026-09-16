@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}{{ view.army_list.name }} - Battle March{% endblock %}
+
+{% block content %}
+        <p><a href="/players/{{ view.army_list.player.id }}">Back to {{ view.army_list.player.name }}</a></p>
+        <section class="page-header">
+            <div class="eyebrow">Army List</div>
+            <h1>{{ view.army_list.name }}</h1>
+            <div class="army-summary">
+                <span>Faction: {{ view.army_list.faction }}</span>
+                <span>Points: <strong>{{ view.army_list.points }}</strong></span>
+                <span>Round {{ view.army_list.round.number }}</span>
+                <span>Player: <a href="/players/{{ view.army_list.player.id }}">{{ view.army_list.player.name }}</a></span>
+            </div>
+        </section>
+
+        {% for section in view.sections %}
+            <section class="army-section">
+                <h2>{{ section.label }}</h2>
+                {% if section.units %}
+                    <div class="vstack gap-3">
+                        {% for unit in section.units %}
+                        <article class="unit-card">
+                            <h3>{{ unit["name"] }}</h3>
+                            <p class="unit-meta mb-2">
+                                {% if unit["strength"] %}{{ unit["strength"] }} models{% endif %}
+                                {% if unit["points"] is not none %}{% if unit["strength"] %}, {% endif %}{{ unit["points"] }} points each{% endif %}
+                                {% if unit["base_total"] %}, base {{ unit["base_total"] }} points{% endif %}
+                            </p>
+                            <p class="points-total">Total unit cost: {{ unit["total_cost"] }} points</p>
+                            {% if unit["upgrade_costs"] %}
+                                <h4 class="h6">Selected costs</h4>
+                                <ul>
+                                    {% for cost in unit["upgrade_costs"] %}
+                                        <li>
+                                            {{ cost.category }}: {{ cost.name }}
+                                            {% if cost.per_model %}
+                                                ({{ cost.points }} points each, {{ cost.total }} total)
+                                            {% else %}
+                                                ({{ cost.total }} points)
+                                            {% endif %}
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            {% else %}
+                                <p class="text-muted-bm">No selected upgrades with additional points.</p>
+                            {% endif %}
+                            <dl class="detail-list">
+                                {% if unit["command"] %}
+                                    <dt>Command</dt>
+                                    <dd>{{ unit["command"] | join(", ") }}</dd>
+                                {% endif %}
+                                {% if unit["equipment"] %}
+                                    <dt>Equipment</dt>
+                                    <dd>{{ unit["equipment"] | join(", ") }}</dd>
+                                {% endif %}
+                                {% if unit["armour"] %}
+                                    <dt>Armour</dt>
+                                    <dd>{{ unit["armour"] | join(", ") }}</dd>
+                                {% endif %}
+                                {% if unit["mounts"] %}
+                                    <dt>Mounts</dt>
+                                    <dd>{{ unit["mounts"] | join(", ") }}</dd>
+                                {% endif %}
+                                {% if unit["options"] %}
+                                    <dt>Options</dt>
+                                    <dd>{{ unit["options"] | join(", ") }}</dd>
+                                {% endif %}
+                                {% if unit["items"] %}
+                                    <dt>Items</dt>
+                                    <dd>{{ unit["items"] | join(", ") }}</dd>
+                                {% endif %}
+                                {% if unit["special_rules"] %}
+                                    <dt>Special rules</dt>
+                                    <dd>{{ unit["special_rules"] | join(", ") }}</dd>
+                                {% endif %}
+                            </dl>
+                        </article>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted-bm">No entries.</p>
+                {% endif %}
+            </section>
+        {% endfor %}
+{% endblock %}

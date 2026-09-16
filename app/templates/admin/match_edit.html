@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Match - Battle March{% endblock %}
+
+{% block content %}
+        <p><a href="/admin/matches">Back to matches</a></p>
+        <section class="page-header"><div class="eyebrow">Admin</div><h1>Edit match</h1></section>
+        {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+        <form class="admin-form row g-3" method="post" action="/admin/matches/{{ match.id }}/edit">
+            <div class="col-md-4">
+                <label class="form-label" for="round_id">Round</label>
+                <select class="form-select" id="round_id" name="round_id" required>
+                    {% for round_item in rounds %}
+                        <option value="{{ round_item.id }}" {% if round_item.id == match.round_id %}selected{% endif %}>Round {{ round_item.number }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" for="player_one_id">Player 1</label>
+                <select class="form-select" id="player_one_id" name="player_one_id" required>
+                    {% for player in players %}
+                        <option value="{{ player.id }}" {% if player.id == match.player_one_id %}selected{% endif %}>{{ player.name }}</option>
+                    {% endfor %}
+                </select>
+                <label class="form-label mt-2" for="player_one_score">Score</label>
+                <input class="form-control" id="player_one_score" name="player_one_score" type="number" min="0" value="{{ match.player_one_score if match.player_one_score is not none else "" }}">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" for="player_two_id">Player 2</label>
+                <select class="form-select" id="player_two_id" name="player_two_id" required>
+                    {% for player in players %}
+                        <option value="{{ player.id }}" {% if player.id == match.player_two_id %}selected{% endif %}>{{ player.name }}</option>
+                    {% endfor %}
+                </select>
+                <label class="form-label mt-2" for="player_two_score">Score</label>
+                <input class="form-control" id="player_two_score" name="player_two_score" type="number" min="0" value="{{ match.player_two_score if match.player_two_score is not none else "" }}">
+            </div>
+            <div class="col-12"><button class="btn btn-dark" type="submit">Save match</button></div>
+        </form>
+{% endblock %}

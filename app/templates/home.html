@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Battle March{% endblock %}
+
+{% block content %}
+    <section class="page-header">
+        <div class="eyebrow">The Old World Escalation League</div>
+        <h1 class="display-5">{{ title }}</h1>
+        <p class="lead mb-0">League standings, round pairings, and army lists for the Battle March campaign.</p>
+    </section>
+
+    <div class="row g-3">
+        <div class="col-md-6">
+            <a class="card h-100 text-decoration-none text-reset" href="/players">
+                <div class="card-body">
+                    <h2 class="h4">Leaderboard</h2>
+                    <p class="mb-0 text-muted-bm">View player rankings and round-by-round points.</p>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-6">
+            <a class="card h-100 text-decoration-none text-reset" href="/rounds">
+                <div class="card-body">
+                    <h2 class="h4">Rounds</h2>
+                    <p class="mb-0 text-muted-bm">Review pairings, results, and points limits.</p>
+                </div>
+            </a>
+        </div>
+    </div>
+{% endblock %}

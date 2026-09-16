@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Players - Battle March{% endblock %}
+
+{% block content %}
+        <p><a href="/admin">Back to admin</a></p>
+        <section class="page-header"><div class="eyebrow">Admin</div><h1>Players</h1></section>
+        {% if league %}
+            <form class="admin-form row g-3 align-items-end" method="post" action="/admin/players">
+                <div class="col-md-8"><label class="form-label" for="name">Player name</label><input class="form-control" id="name" name="name" required></div>
+                <div class="col-md-4"><button class="btn btn-dark" type="submit">Add player</button></div>
+            </form>
+            <div class="table-panel"><table class="table table-striped align-middle">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for player in players %}
+                        <tr>
+                            <td>{{ player.name }}</td>
+                            <td><a href="/admin/players/{{ player.id }}/edit">Edit</a></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table></div>
+        {% else %}
+            <p>No league exists yet. Run the development seed first.</p>
+        {% endif %}
+{% endblock %}

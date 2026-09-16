@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Import Army List - Battle March{% endblock %}
+
+{% block content %}
+        <section class="page-header"><div class="eyebrow">Development</div><h1>Import army list</h1></section>
+
+        {% if error %}
+            <div class="alert alert-danger">{{ error }}</div>
+        {% endif %}
+
+        {% if army_list %}
+            <div class="alert alert-success">
+                Imported {{ army_list.name }} for Round {{ army_list.round.number }}. Faction: {{ army_list.faction }}. Points: {{ army_list.points }}.
+            </div>
+        {% endif %}
+
+        <form class="admin-form" method="post" action="/dev/army-lists/import">
+            <p>
+                <label class="form-label" for="player_id">Player</label>
+                <select class="form-select" id="player_id" name="player_id" required>
+                    {% for player in players %}
+                        <option value="{{ player.id }}">{{ player.name }}</option>
+                    {% endfor %}
+                </select>
+            </p>
+
+            <p>
+                <label class="form-label" for="round_id">Round</label>
+                <select class="form-select" id="round_id" name="round_id" required>
+                    {% for round_item in rounds %}
+                        <option value="{{ round_item.id }}">Round {{ round_item.number }}</option>
+                    {% endfor %}
+                </select>
+            </p>
+
+            <p>
+                <label class="form-label" for="json_text">Old World Builder JSON</label>
+                <textarea class="form-control" id="json_text" name="json_text" rows="12" required></textarea>
+            </p>
+
+            <button class="btn btn-dark" type="submit">Import army list</button>
+        </form>
+{% endblock %}

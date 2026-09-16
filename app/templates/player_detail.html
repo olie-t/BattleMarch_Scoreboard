@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}{{ player_detail.player.name }} - Battle March{% endblock %}
+
+{% block content %}
+        <p><a href="/players">Back to leaderboard</a></p>
+        <section class="page-header">
+            <div class="eyebrow">Player Profile</div>
+            <h1>{{ player_detail.player.name }}</h1>
+            <div class="army-summary">
+                <span>Faction: {{ player_detail.faction or "Not submitted" }}</span>
+                <span>Current total: <strong>{{ player_detail.total_points }}</strong></span>
+            </div>
+        </section>
+
+        <h2 class="h4">Results by round</h2>
+        <div class="table-panel">
+        <table class="table table-striped align-middle">
+            <thead>
+                <tr>
+                    <th>Round</th>
+                    <th>Opponent</th>
+                    <th>Score</th>
+                    <th>Result</th>
+                    <th>Points</th>
+                    <th>Army list</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in player_detail.round_results %}
+                    {% set result_class = "result-win" if row.result == "Win" else "result-loss" if row.result == "Loss" else "result-draw" if row.result == "Draw" else "result-pending" if row.result == "Pending" else "result-no-match" %}
+                    <tr>
+                        <td>Round {{ row.round.number }}</td>
+                        <td>
+                            {% if row.opponent %}
+                                <a class="fw-semibold" href="/players/{{ row.opponent.id }}">{{ row.opponent.name }}</a>
+                            {% else %}
+                                No match scheduled
+                            {% endif %}
+                        </td>
+                        <td>{{ row.score }}</td>
+                        <td><span class="result-badge {{ result_class }}">{{ row.result }}</span></td>
+                        <td class="fw-semibold">{{ row.points }}</td>
+                        <td>
+                            {% if row.army_list %}
+                                <a href="/army-lists/{{ row.army_list.id }}">{{ row.army_list.name }}</a>
+                            {% else %}
+                                Not submitted
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+{% endblock %}

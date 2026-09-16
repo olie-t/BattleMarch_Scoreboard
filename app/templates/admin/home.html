@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Admin - Battle March{% endblock %}
+
+{% block content %}
+    <section class="page-header d-flex flex-wrap justify-content-between gap-3">
+        <div>
+            <div class="eyebrow">League Control</div>
+            <h1>Admin</h1>
+        </div>
+        <form method="post" action="/admin/logout">
+            <button class="btn btn-outline-dark" type="submit">Log out</button>
+        </form>
+    </section>
+    <div class="row g-3">
+        <div class="col-md-6 col-lg-3"><a class="card h-100 text-decoration-none text-reset" href="/admin/players"><div class="card-body"><h2 class="h5">Players</h2></div></a></div>
+        <div class="col-md-6 col-lg-3"><a class="card h-100 text-decoration-none text-reset" href="/admin/rounds"><div class="card-body"><h2 class="h5">Rounds</h2></div></a></div>
+        <div class="col-md-6 col-lg-3"><a class="card h-100 text-decoration-none text-reset" href="/admin/matches"><div class="card-body"><h2 class="h5">Matches</h2></div></a></div>
+        <div class="col-md-6 col-lg-3"><a class="card h-100 text-decoration-none text-reset" href="/admin/army-lists"><div class="card-body"><h2 class="h5">Army Lists</h2></div></a></div>
+    </div>
+{% endblock %}

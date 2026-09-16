@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Army Lists - Battle March{% endblock %}
+
+{% block content %}
+        <p><a href="/admin">Back to admin</a></p>
+        <section class="page-header"><div class="eyebrow">Admin</div><h1>Army Lists</h1></section>
+        {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+        {% if army_list %}
+            <div class="alert alert-success">Imported <a href="/army-lists/{{ army_list.id }}">{{ army_list.name }}</a>.</div>
+        {% endif %}
+
+        <form class="admin-form" method="post" action="/admin/army-lists">
+            <p>
+                <label class="form-label" for="player_id">Player</label>
+                <select class="form-select" id="player_id" name="player_id" required>
+                    {% for player in players %}
+                        <option value="{{ player.id }}">{{ player.name }}</option>
+                    {% endfor %}
+                </select>
+            </p>
+            <p>
+                <label class="form-label" for="round_id">Round</label>
+                <select class="form-select" id="round_id" name="round_id" required>
+                    {% for round_item in rounds %}
+                        <option value="{{ round_item.id }}">Round {{ round_item.number }}</option>
+                    {% endfor %}
+                </select>
+            </p>
+            <p>
+                <label class="form-label" for="json_text">Old World Builder JSON</label>
+                <textarea class="form-control" id="json_text" name="json_text" rows="12" required></textarea>
+            </p>
+            <button class="btn btn-dark" type="submit">Import army list</button>
+        </form>
+
+        <h2 class="h4">Imported lists</h2>
+        <div class="table-panel"><table class="table table-striped align-middle">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Player</th>
+                    <th>Round</th>
+                    <th>Faction</th>
+                    <th>Points</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for list in army_lists %}
+                    <tr>
+                        <td><a href="/army-lists/{{ list.id }}">{{ list.name }}</a></td>
+                        <td>{{ list.player.name }}</td>
+                        <td>Round {{ list.round.number }}</td>
+                        <td>{{ list.faction }}</td>
+                        <td>{{ list.points }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table></div>
+    {% endblock %}

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}Rounds - Battle March{% endblock %}
+
+{% block content %}
+        {% if league %}
+            <section class="page-header">
+                <div class="eyebrow">Rounds</div>
+                <h1>{{ league.name }}</h1>
+            </section>
+            <div class="round-grid">
+                {% for round_item in rounds %}
+                    <a class="card round-card text-decoration-none text-reset" href="/rounds/{{ round_item.id }}">
+                        <div class="eyebrow">Round {{ round_item.number }}</div>
+                        <h2 class="h4 mb-1">{{ round_item.points_limit }} points</h2>
+                        <p class="mb-0 text-muted-bm">View matches and results</p>
+                    </a>
+                {% endfor %}
+            </div>
+        {% else %}
+            <h1>No league found</h1>
+        {% endif %}
+{% endblock %}

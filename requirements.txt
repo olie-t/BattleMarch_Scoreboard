@@ -1,0 +1,10 @@
+fastapi
+httpx
+itsdangerous
+jinja2
+alembic
+psycopg[binary]
+SQLAlchemy
+pytest
+python-multipart
+uvicorn[standard]

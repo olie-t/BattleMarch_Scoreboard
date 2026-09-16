@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Matches - Battle March{% endblock %}
+
+{% block content %}
+        <p><a href="/admin">Back to admin</a></p>
+        <section class="page-header"><div class="eyebrow">Admin</div><h1>Matches</h1></section>
+        {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+        {% if league %}
+            <form class="admin-form row g-3 align-items-end" method="post" action="/admin/matches">
+                <div class="col-md-3">
+                    <label class="form-label" for="round_id">Round</label>
+                    <select class="form-select" id="round_id" name="round_id" required>
+                        {% for round_item in rounds %}
+                            <option value="{{ round_item.id }}">Round {{ round_item.number }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="player_one_id">Player 1</label>
+                    <select class="form-select" id="player_one_id" name="player_one_id" required>
+                        {% for player in players %}
+                            <option value="{{ player.id }}">{{ player.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <label class="form-label mt-2" for="player_one_score">Score</label>
+                    <input class="form-control" id="player_one_score" name="player_one_score" type="number" min="0">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="player_two_id">Player 2</label>
+                    <select class="form-select" id="player_two_id" name="player_two_id" required>
+                        {% for player in players %}
+                            <option value="{{ player.id }}">{{ player.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <label class="form-label mt-2" for="player_two_score">Score</label>
+                    <input class="form-control" id="player_two_score" name="player_two_score" type="number" min="0">
+                </div>
+                <div class="col-md-3"><button class="btn btn-dark" type="submit">Add match</button></div>
+            </form>
+
+            <div class="table-panel"><table class="table table-striped align-middle">
+                <thead>
+                    <tr>
+                        <th>Round</th>
+                        <th>Player 1</th>
+                        <th>Score</th>
+                        <th>Player 2</th>
+                        <th>Score</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for match in matches %}
+                        {% include "admin/match_row.html" %}
+                    {% endfor %}
+                </tbody>
+            </table></div>
+        {% else %}
+            <p>No league exists yet. Run the development seed first.</p>
+        {% endif %}
+{% endblock %}
+
+{% block scripts %}
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+{% endblock %}

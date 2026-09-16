@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Round - Battle March{% endblock %}
+
+{% block content %}
+        <p><a href="/admin/rounds">Back to rounds</a></p>
+        <section class="page-header"><div class="eyebrow">Admin</div><h1>Edit Round {{ round_item.number }}</h1></section>
+        <form class="admin-form row g-3" method="post" action="/admin/rounds/{{ round_item.id }}/edit">
+            <div class="col-md-6"><label class="form-label" for="number">Round number</label><input class="form-control" id="number" name="number" type="number" min="1" value="{{ round_item.number }}" required></div>
+            <div class="col-md-6"><label class="form-label" for="points_limit">Points limit</label><input class="form-control" id="points_limit" name="points_limit" type="number" min="1" value="{{ round_item.points_limit }}" required></div>
+            <div class="col-12"><button class="btn btn-dark" type="submit">Save round</button></div>
+        </form>
+{% endblock %}
