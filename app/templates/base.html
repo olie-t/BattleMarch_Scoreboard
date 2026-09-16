@@ -18,8 +18,13 @@
             <p class="site-subtitle">Old World League Ledger</p>
             <nav aria-label="Primary navigation">
                 <a class="side-link" href="/leagues">Leagues</a>
-                <a class="side-link" href="/players">Leaderboard</a>
-                <a class="side-link" href="/rounds">Rounds</a>
+                {% for nav_league in nav_leagues() %}
+                    <div class="side-league">
+                        <div class="side-league-name">{{ nav_league.name }}</div>
+                        <a class="side-sub-link" href="/leagues/{{ nav_league.id }}/players">Leaderboard</a>
+                        <a class="side-sub-link" href="/leagues/{{ nav_league.id }}/rounds">Rounds</a>
+                    </div>
+                {% endfor %}
                 <a class="side-link" href="/admin">Admin</a>
             </nav>
         </aside>

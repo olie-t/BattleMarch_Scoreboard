@@ -89,6 +89,31 @@ a:hover {
     color: #ffffff;
 }
 
+.side-league {
+    border-bottom: 1px solid rgba(255, 239, 191, 0.16);
+    margin-bottom: 0.75rem;
+    padding: 0.25rem 0 0.75rem;
+}
+
+.side-league-name {
+    color: #fff3cf;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 0.35rem;
+}
+
+.side-sub-link {
+    color: #d8c190;
+    display: block;
+    font-size: 0.95rem;
+    padding: 0.12rem 0 0.12rem 0.75rem;
+    text-decoration: none;
+}
+
+.side-sub-link:hover {
+    color: #ffffff;
+}
+
 .page-shell {
     margin: 0 auto;
     max-width: 1120px;

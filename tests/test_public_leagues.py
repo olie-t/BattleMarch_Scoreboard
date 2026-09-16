@@ -28,6 +28,10 @@ def test_public_league_pages_filter_by_league() -> None:
     assert leagues_response.status_code == 200
     assert "Old World Battle March" in leagues_response.text
     assert "40k Combat Patrol" in leagues_response.text
+    assert f'href="/leagues/{old_world_id}/players"' in leagues_response.text
+    assert f'href="/leagues/{old_world_id}/rounds"' in leagues_response.text
+    assert f'href="/leagues/{combat_patrol_id}/players"' in leagues_response.text
+    assert f'href="/leagues/{combat_patrol_id}/rounds"' in leagues_response.text
 
     old_world_response = client.get(f"/leagues/{old_world_id}/players")
     assert old_world_response.status_code == 200
