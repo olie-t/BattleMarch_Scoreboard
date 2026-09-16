@@ -11,7 +11,6 @@ from starlette.middleware.sessions import SessionMiddleware
 from app.auth import secure_cookies_enabled, session_secret
 from app.database import Base, engine
 from app.routes import admin, auth, public
-from app.scoreboard import build_leaderboard
 from app.templating import BASE_DIR
 
 

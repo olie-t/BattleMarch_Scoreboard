@@ -6,6 +6,14 @@
         <p><a href="/admin">Back to admin</a></p>
         <section class="page-header"><div class="eyebrow">Admin</div><h1>Matches</h1></section>
         {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+        <form class="admin-form" method="get" action="/admin/matches">
+            <label class="form-label" for="league_id">League</label>
+            <select class="form-select" id="league_id" name="league_id" onchange="this.form.submit()">
+                {% for league_option in leagues %}
+                    <option value="{{ league_option.id }}" {% if league and league_option.id == league.id %}selected{% endif %}>{{ league_option.name }}</option>
+                {% endfor %}
+            </select>
+        </form>
         {% if league %}
             <form class="admin-form row g-3 align-items-end" method="post" action="/admin/matches">
                 <div class="col-md-3">

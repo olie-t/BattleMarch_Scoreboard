@@ -1,3 +1,5 @@
+from typing import Optional
+
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
 from sqlalchemy import select
@@ -5,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.army_list_view import render_army_list
 from app.database import get_db
-from app.models import ArmyList, Match, Player, Round
+from app.models import ArmyList, League, Match, Player, Round
 from app.scoreboard import build_leaderboard, build_match_row, build_player_detail, current_league
 from app.templating import templates
 
@@ -25,6 +27,28 @@ def home(request: Request) -> HTMLResponse:
 @router.get("/players", response_class=HTMLResponse)
 def player_list(request: Request, db: Session = Depends(get_db)) -> HTMLResponse:
     league = current_league(db)
+    return render_player_list(request, db, league)
+
+
+@router.get("/leagues", response_class=HTMLResponse)
+def league_list(request: Request, db: Session = Depends(get_db)) -> HTMLResponse:
+    leagues = list(db.scalars(select(League).order_by(League.name)))
+    return templates.TemplateResponse(
+        request=request,
+        name="leagues.html",
+        context={"leagues": leagues},
+    )
+
+
+@router.get("/leagues/{league_id}/players", response_class=HTMLResponse)
+def league_player_list(league_id: int, request: Request, db: Session = Depends(get_db)) -> HTMLResponse:
+    league = db.get(League, league_id)
+    if league is None:
+        return HTMLResponse("League not found", status_code=404)
+    return render_player_list(request, db, league)
+
+
+def render_player_list(request: Request, db: Session, league: Optional[League]) -> HTMLResponse:
     rounds, players = ([], []) if league is None else build_leaderboard(db, league.id)
     return templates.TemplateResponse(
         request=request,
@@ -53,6 +77,18 @@ def player_detail(
 @router.get("/rounds", response_class=HTMLResponse)
 def round_list(request: Request, db: Session = Depends(get_db)) -> HTMLResponse:
     league = current_league(db)
+    return render_round_list(request, db, league)
+
+
+@router.get("/leagues/{league_id}/rounds", response_class=HTMLResponse)
+def league_round_list(league_id: int, request: Request, db: Session = Depends(get_db)) -> HTMLResponse:
+    league = db.get(League, league_id)
+    if league is None:
+        return HTMLResponse("League not found", status_code=404)
+    return render_round_list(request, db, league)
+
+
+def render_round_list(request: Request, db: Session, league: Optional[League]) -> HTMLResponse:
     rounds = [] if league is None else list(
         db.scalars(
             select(Round)

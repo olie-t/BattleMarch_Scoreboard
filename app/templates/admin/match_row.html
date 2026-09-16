@@ -36,5 +36,15 @@
             <button class="btn btn-sm btn-dark" type="submit">Save VP</button>
             <a class="btn btn-sm btn-outline-dark" href="/admin/matches/{{ match.id }}/edit">Edit match</a>
         </form>
+        <form
+            class="d-inline"
+            method="post"
+            action="/admin/matches/{{ match.id }}/reset"
+            hx-post="/admin/matches/{{ match.id }}/reset"
+            hx-target="#match-{{ match.id }}"
+            hx-swap="outerHTML"
+        >
+            <button class="btn btn-sm btn-outline-danger" type="submit">Reset match</button>
+        </form>
     </td>
 </tr>

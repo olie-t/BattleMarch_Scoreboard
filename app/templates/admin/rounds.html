@@ -5,8 +5,17 @@
 {% block content %}
         <p><a href="/admin">Back to admin</a></p>
         <section class="page-header"><div class="eyebrow">Admin</div><h1>Rounds</h1></section>
+        <form class="admin-form" method="get" action="/admin/rounds">
+            <label class="form-label" for="league_id">League</label>
+            <select class="form-select" id="league_id" name="league_id" onchange="this.form.submit()">
+                {% for league_option in leagues %}
+                    <option value="{{ league_option.id }}" {% if league and league_option.id == league.id %}selected{% endif %}>{{ league_option.name }}</option>
+                {% endfor %}
+            </select>
+        </form>
         {% if league %}
             <form class="admin-form row g-3 align-items-end" method="post" action="/admin/rounds">
+                <input type="hidden" name="league_id" value="{{ league.id }}">
                 <div class="col-md-4"><label class="form-label" for="number">Round number</label><input class="form-control" id="number" name="number" type="number" min="1" required></div>
                 <div class="col-md-4"><label class="form-label" for="points_limit">Points limit</label><input class="form-control" id="points_limit" name="points_limit" type="number" min="1" required></div>
                 <div class="col-md-4"><button class="btn btn-dark" type="submit">Add round</button></div>

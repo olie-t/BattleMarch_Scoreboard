@@ -1,8 +1,8 @@
 from sqlalchemy import select
 
 from app.database import SessionLocal
-from app.main import build_leaderboard
 from app.models import League
+from app.scoreboard import build_leaderboard
 from scripts.seed import seed_database
 
 

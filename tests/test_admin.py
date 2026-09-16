@@ -38,7 +38,7 @@ def test_public_development_write_routes_are_removed() -> None:
 
     assert client.get("/dev/army-lists/import").status_code == 404
     assert client.post("/dev/army-lists/import").status_code == 404
-    assert client.post("/leagues", data={"name": "Open Write"}).status_code == 404
+    assert client.post("/leagues", data={"name": "Open Write"}).status_code == 405
 
 
 def test_admin_pages_require_login() -> None:
@@ -103,11 +103,40 @@ def test_admin_can_create_and_edit_first_league_from_empty_database(monkeypatch)
         assert db.scalar(select(League).where(League.name == "The First Muster Revised")) is not None
 
 
+def test_admin_filters_players_by_selected_league(monkeypatch) -> None:
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+    client = authenticated_client(monkeypatch)
+
+    with SessionLocal() as db:
+        old_world = League(name="Old World")
+        combat_patrol = League(name="Combat Patrol")
+        db.add_all([old_world, combat_patrol])
+        db.flush()
+        old_world_id = old_world.id
+        combat_patrol_id = combat_patrol.id
+        db.add(Player(name="Alys Emberfall", league_id=old_world_id))
+        db.add(Player(name="Brother Cassian", league_id=combat_patrol_id))
+        db.commit()
+
+    response = client.get(f"/admin/players?league_id={old_world_id}")
+
+    assert response.status_code == 200
+    assert "Alys Emberfall" in response.text
+    assert "Brother Cassian" not in response.text
+
+    response = client.get(f"/admin/players?league_id={combat_patrol_id}")
+
+    assert response.status_code == 200
+    assert "Brother Cassian" in response.text
+    assert "Alys Emberfall" not in response.text
+
+
 def test_admin_can_add_and_edit_player(monkeypatch) -> None:
     seed_database()
     client = authenticated_client(monkeypatch)
 
-    response = client.post("/admin/players", data={"name": "Iris Dawn"})
+    response = client.post("/admin/players", data={"name": "Iris Dawn", "league_id": "1"})
     assert response.status_code == 200
 
     with SessionLocal() as db:
@@ -126,7 +155,7 @@ def test_admin_can_add_and_edit_round(monkeypatch) -> None:
     seed_database()
     client = authenticated_client(monkeypatch)
 
-    response = client.post("/admin/rounds", data={"number": "4", "points_limit": "1750"})
+    response = client.post("/admin/rounds", data={"number": "4", "points_limit": "1750", "league_id": "1"})
     assert response.status_code == 200
 
     with SessionLocal() as db:
@@ -239,6 +268,32 @@ def test_admin_can_update_match_scores_with_htmx(monkeypatch) -> None:
     assert leaderboard_response.status_code == 200
     assert "Elara Moonbrook" in leaderboard_response.text
     assert ">20<" in leaderboard_response.text
+
+
+def test_admin_can_reset_match_scores_with_htmx(monkeypatch) -> None:
+    seed_database()
+    client = authenticated_client(monkeypatch)
+
+    with SessionLocal() as db:
+        match = db.scalar(select(Match).where(Match.player_one_id == 1, Match.player_two_id == 2))
+        assert match is not None
+        match_id = match.id
+
+    response = client.post(
+        f"/admin/matches/{match_id}/reset",
+        headers={"HX-Request": "true"},
+    )
+
+    assert response.status_code == 200
+    assert f'id="match-{match_id}"' in response.text
+    assert f'action="/admin/matches/{match_id}/reset"' in response.text
+    assert 'value="15"' not in response.text
+    assert 'value="5"' not in response.text
+
+    with SessionLocal() as db:
+        match = db.get(Match, match_id)
+        assert match.player_one_score is None
+        assert match.player_two_score is None
 
 
 def test_admin_can_import_army_list(monkeypatch) -> None:

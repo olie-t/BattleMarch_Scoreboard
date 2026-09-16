@@ -10,6 +10,16 @@
             <div class="alert alert-success">Imported <a href="/army-lists/{{ army_list.id }}">{{ army_list.name }}</a>.</div>
         {% endif %}
 
+        <form class="admin-form" method="get" action="/admin/army-lists">
+            <label class="form-label" for="league_id">League</label>
+            <select class="form-select" id="league_id" name="league_id" onchange="this.form.submit()">
+                {% for league_option in leagues %}
+                    <option value="{{ league_option.id }}" {% if league and league_option.id == league.id %}selected{% endif %}>{{ league_option.name }}</option>
+                {% endfor %}
+            </select>
+        </form>
+
+        {% if league %}
         <form class="admin-form" method="post" action="/admin/army-lists">
             <p>
                 <label class="form-label" for="player_id">Player</label>
@@ -33,6 +43,7 @@
             </p>
             <button class="btn btn-dark" type="submit">Import army list</button>
         </form>
+        {% endif %}
 
         <h2 class="h4">Imported lists</h2>
         <div class="table-panel"><table class="table table-striped align-middle">

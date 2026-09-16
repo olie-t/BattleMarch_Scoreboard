@@ -1,3 +1,5 @@
+from typing import Optional
+
 from fastapi import APIRouter, Depends, Form, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy import select
@@ -12,6 +14,106 @@ from app.templating import templates
 
 
 router = APIRouter(prefix="/admin", dependencies=[Depends(require_admin)])
+
+
+def all_leagues(db: Session) -> list[League]:
+    return list(db.scalars(select(League).order_by(League.name)))
+
+
+def selected_league(db: Session, league_id: Optional[int]) -> Optional[League]:
+    if league_id is not None:
+        return db.get(League, league_id)
+    return current_league(db)
+
+
+def league_players(db: Session, league_id: int) -> list[Player]:
+    return list(db.scalars(select(Player).where(Player.league_id == league_id).order_by(Player.name)))
+
+
+def league_rounds(db: Session, league_id: int) -> list[Round]:
+    return list(db.scalars(select(Round).where(Round.league_id == league_id).order_by(Round.number)))
+
+
+def league_matches(db: Session, league_id: int) -> list[Match]:
+    return list(
+        db.scalars(
+            select(Match)
+            .join(Round)
+            .where(Round.league_id == league_id)
+            .order_by(Round.number, Match.id)
+        )
+    )
+
+
+def league_admin_context(db: Session, league_id: Optional[int]) -> dict:
+    league = selected_league(db, league_id)
+    return {"leagues": all_leagues(db), "league": league}
+
+
+def league_redirect(path: str, league: Optional[League]) -> RedirectResponse:
+    if league is None:
+        return RedirectResponse(path, status_code=303)
+    return RedirectResponse(f"{path}?league_id={league.id}", status_code=303)
+
+
+def match_admin_context(db: Session, league_id: Optional[int] = None, error: Optional[str] = None) -> dict:
+    context = league_admin_context(db, league_id)
+    league = context["league"]
+    context.update(
+        {
+            "rounds": [] if league is None else league_rounds(db, league.id),
+            "players": [] if league is None else league_players(db, league.id),
+            "matches": [] if league is None else league_matches(db, league.id),
+            "error": error,
+        }
+    )
+    return context
+
+
+def match_edit_context(db: Session, match: Match, error: Optional[str] = None) -> dict:
+    league = match.round.league
+    return {
+        "match": match,
+        "rounds": league_rounds(db, league.id),
+        "players": league_players(db, league.id),
+        "error": error,
+    }
+
+
+def army_list_admin_context(
+    db: Session,
+    league_id: Optional[int] = None,
+    error: Optional[str] = None,
+    army_list: Optional[ArmyList] = None,
+) -> dict:
+    context = league_admin_context(db, league_id)
+    league = context["league"]
+    context.update(
+        {
+            "players": [] if league is None else league_players(db, league.id),
+            "rounds": [] if league is None else league_rounds(db, league.id),
+            "army_lists": [] if league is None else list(
+                db.scalars(
+                    select(ArmyList)
+                    .join(Round)
+                    .where(Round.league_id == league.id)
+                    .order_by(ArmyList.created_at.desc(), ArmyList.id.desc())
+                )
+            ),
+            "error": error,
+            "army_list": army_list,
+        }
+    )
+    return context
+
+
+def match_players_belong_to_round_league(db: Session, round_id: int, player_one_id: int, player_two_id: int) -> bool:
+    round_item = db.get(Round, round_id)
+    player_one = db.get(Player, player_one_id)
+    player_two = db.get(Player, player_two_id)
+    if round_item is None or player_one is None or player_two is None:
+        return False
+    return player_one.league_id == round_item.league_id and player_two.league_id == round_item.league_id
 
 
 @router.get("", response_class=HTMLResponse)
@@ -31,9 +133,11 @@ def admin_leagues(request: Request, db: Session = Depends(get_db)) -> HTMLRespon
 
 @router.post("/leagues")
 def admin_create_league(name: str = Form(...), db: Session = Depends(get_db)) -> RedirectResponse:
-    db.add(League(name=name.strip()))
+    league = League(name=name.strip())
+    db.add(league)
     db.commit()
-    return RedirectResponse("/admin/leagues", status_code=303)
+    db.refresh(league)
+    return league_redirect("/admin/players", league)
 
 
 @router.get("/leagues/{league_id}/edit", response_class=HTMLResponse)
@@ -66,25 +170,28 @@ def admin_update_league(
 
 
 @router.get("/players", response_class=HTMLResponse)
-def admin_players(request: Request, db: Session = Depends(get_db)) -> HTMLResponse:
-    league = current_league(db)
-    players = [] if league is None else list(
-        db.scalars(select(Player).where(Player.league_id == league.id).order_by(Player.name))
-    )
-    return templates.TemplateResponse(
-        request=request,
-        name="admin/players.html",
-        context={"league": league, "players": players},
-    )
+def admin_players(
+    request: Request,
+    league_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+) -> HTMLResponse:
+    context = league_admin_context(db, league_id)
+    league = context["league"]
+    context["players"] = [] if league is None else league_players(db, league.id)
+    return templates.TemplateResponse(request=request, name="admin/players.html", context=context)
 
 
 @router.post("/players")
-def admin_create_player(name: str = Form(...), db: Session = Depends(get_db)) -> RedirectResponse:
-    league = current_league(db)
+def admin_create_player(
+    name: str = Form(...),
+    league_id: int = Form(...),
+    db: Session = Depends(get_db),
+) -> RedirectResponse:
+    league = selected_league(db, league_id)
     if league is not None:
         db.add(Player(name=name.strip(), league_id=league.id))
         db.commit()
-    return RedirectResponse("/admin/players", status_code=303)
+    return league_redirect("/admin/players", league)
 
 
 @router.get("/players/{player_id}/edit", response_class=HTMLResponse)
@@ -96,11 +203,7 @@ def admin_edit_player_form(
     player = db.get(Player, player_id)
     if player is None:
         return HTMLResponse("Player not found", status_code=404)
-    return templates.TemplateResponse(
-        request=request,
-        name="admin/player_edit.html",
-        context={"player": player},
-    )
+    return templates.TemplateResponse(request=request, name="admin/player_edit.html", context={"player": player})
 
 
 @router.post("/players/{player_id}/edit")
@@ -113,33 +216,34 @@ def admin_update_player(
     if player is not None:
         player.name = name.strip()
         db.commit()
+        return league_redirect("/admin/players", player.league)
     return RedirectResponse("/admin/players", status_code=303)
 
 
 @router.get("/rounds", response_class=HTMLResponse)
-def admin_rounds(request: Request, db: Session = Depends(get_db)) -> HTMLResponse:
-    league = current_league(db)
-    rounds = [] if league is None else list(
-        db.scalars(select(Round).where(Round.league_id == league.id).order_by(Round.number))
-    )
-    return templates.TemplateResponse(
-        request=request,
-        name="admin/rounds.html",
-        context={"league": league, "rounds": rounds},
-    )
+def admin_rounds(
+    request: Request,
+    league_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+) -> HTMLResponse:
+    context = league_admin_context(db, league_id)
+    league = context["league"]
+    context["rounds"] = [] if league is None else league_rounds(db, league.id)
+    return templates.TemplateResponse(request=request, name="admin/rounds.html", context=context)
 
 
 @router.post("/rounds")
 def admin_create_round(
     number: int = Form(...),
     points_limit: int = Form(...),
+    league_id: int = Form(...),
     db: Session = Depends(get_db),
 ) -> RedirectResponse:
-    league = current_league(db)
+    league = selected_league(db, league_id)
     if league is not None:
         db.add(Round(number=number, points_limit=points_limit, league_id=league.id))
         db.commit()
-    return RedirectResponse("/admin/rounds", status_code=303)
+    return league_redirect("/admin/rounds", league)
 
 
 @router.get("/rounds/{round_id}/edit", response_class=HTMLResponse)
@@ -151,11 +255,7 @@ def admin_edit_round_form(
     round_item = db.get(Round, round_id)
     if round_item is None:
         return HTMLResponse("Round not found", status_code=404)
-    return templates.TemplateResponse(
-        request=request,
-        name="admin/round_edit.html",
-        context={"round_item": round_item},
-    )
+    return templates.TemplateResponse(request=request, name="admin/round_edit.html", context={"round_item": round_item})
 
 
 @router.post("/rounds/{round_id}/edit")
@@ -170,6 +270,7 @@ def admin_update_round(
         round_item.number = number
         round_item.points_limit = points_limit
         db.commit()
+        return league_redirect("/admin/rounds", round_item.league)
     return RedirectResponse("/admin/rounds", status_code=303)
 
 
@@ -182,7 +283,7 @@ def admin_round_scores(
     round_item = db.get(Round, round_id)
     if round_item is None:
         return HTMLResponse("Round not found", status_code=404)
-    players = list(db.scalars(select(Player).where(Player.league_id == round_item.league_id).order_by(Player.name)))
+    players = league_players(db, round_item.league_id)
     scores = list(db.scalars(select(PlayerRoundScore).where(PlayerRoundScore.round_id == round_id)))
     scores_by_player_id = {score.player_id: score for score in scores}
     return templates.TemplateResponse(
@@ -203,7 +304,7 @@ async def admin_update_round_scores(
         return RedirectResponse("/admin/rounds", status_code=303)
 
     form = await request.form()
-    players = list(db.scalars(select(Player).where(Player.league_id == round_item.league_id).order_by(Player.name)))
+    players = league_players(db, round_item.league_id)
     scores = list(db.scalars(select(PlayerRoundScore).where(PlayerRoundScore.round_id == round_id)))
     scores_by_player_id = {score.player_id: score for score in scores}
 
@@ -221,19 +322,15 @@ async def admin_update_round_scores(
 
 
 @router.get("/matches", response_class=HTMLResponse)
-def admin_matches(request: Request, db: Session = Depends(get_db)) -> HTMLResponse:
-    league = current_league(db)
-    rounds = [] if league is None else list(
-        db.scalars(select(Round).where(Round.league_id == league.id).order_by(Round.number))
-    )
-    players = [] if league is None else list(
-        db.scalars(select(Player).where(Player.league_id == league.id).order_by(Player.name))
-    )
-    matches = list(db.scalars(select(Match).join(Round).order_by(Round.number, Match.id)))
+def admin_matches(
+    request: Request,
+    league_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+) -> HTMLResponse:
     return templates.TemplateResponse(
         request=request,
         name="admin/matches.html",
-        context={"league": league, "rounds": rounds, "players": players, "matches": matches, "error": None},
+        context=match_admin_context(db, league_id=league_id),
     )
 
 
@@ -247,8 +344,12 @@ def admin_create_match(
     player_two_score: str = Form(""),
     db: Session = Depends(get_db),
 ) -> Response:
+    round_item = db.get(Round, round_id)
+    league_id = None if round_item is None else round_item.league_id
     if player_one_id == player_two_id:
-        return admin_matches_with_error(request, db, "A match needs two different players.")
+        return admin_matches_with_error(request, db, league_id, "A match needs two different players.")
+    if not match_players_belong_to_round_league(db, round_id, player_one_id, player_two_id):
+        return admin_matches_with_error(request, db, league_id, "Both players must belong to the selected round's league.")
     db.add(
         Match(
             round_id=round_id,
@@ -259,22 +360,19 @@ def admin_create_match(
         )
     )
     db.commit()
-    return RedirectResponse("/admin/matches", status_code=303)
+    return league_redirect("/admin/matches", round_item.league if round_item else None)
 
 
-def admin_matches_with_error(request: Request, db: Session, error: str) -> HTMLResponse:
-    league = current_league(db)
-    rounds = [] if league is None else list(
-        db.scalars(select(Round).where(Round.league_id == league.id).order_by(Round.number))
-    )
-    players = [] if league is None else list(
-        db.scalars(select(Player).where(Player.league_id == league.id).order_by(Player.name))
-    )
-    matches = list(db.scalars(select(Match).join(Round).order_by(Round.number, Match.id)))
+def admin_matches_with_error(
+    request: Request,
+    db: Session,
+    league_id: Optional[int],
+    error: str,
+) -> HTMLResponse:
     return templates.TemplateResponse(
         request=request,
         name="admin/matches.html",
-        context={"league": league, "rounds": rounds, "players": players, "matches": matches, "error": error},
+        context=match_admin_context(db, league_id=league_id, error=error),
         status_code=400,
     )
 
@@ -288,14 +386,7 @@ def admin_edit_match_form(
     match = db.get(Match, match_id)
     if match is None:
         return HTMLResponse("Match not found", status_code=404)
-    league = match.round.league
-    rounds = list(db.scalars(select(Round).where(Round.league_id == league.id).order_by(Round.number)))
-    players = list(db.scalars(select(Player).where(Player.league_id == league.id).order_by(Player.name)))
-    return templates.TemplateResponse(
-        request=request,
-        name="admin/match_edit.html",
-        context={"match": match, "rounds": rounds, "players": players, "error": None},
-    )
+    return templates.TemplateResponse(request=request, name="admin/match_edit.html", context=match_edit_context(db, match))
 
 
 @router.post("/matches/{match_id}/edit", response_class=HTMLResponse)
@@ -313,13 +404,17 @@ def admin_update_match(
     if match is None:
         return HTMLResponse("Match not found", status_code=404)
     if player_one_id == player_two_id:
-        league = match.round.league
-        rounds = list(db.scalars(select(Round).where(Round.league_id == league.id).order_by(Round.number)))
-        players = list(db.scalars(select(Player).where(Player.league_id == league.id).order_by(Player.name)))
         return templates.TemplateResponse(
             request=request,
             name="admin/match_edit.html",
-            context={"match": match, "rounds": rounds, "players": players, "error": "A match needs two different players."},
+            context=match_edit_context(db, match, error="A match needs two different players."),
+            status_code=400,
+        )
+    if not match_players_belong_to_round_league(db, round_id, player_one_id, player_two_id):
+        return templates.TemplateResponse(
+            request=request,
+            name="admin/match_edit.html",
+            context=match_edit_context(db, match, error="Both players must belong to the selected round's league."),
             status_code=400,
         )
     match.round_id = round_id
@@ -328,7 +423,7 @@ def admin_update_match(
     match.player_one_score = optional_score(player_one_score)
     match.player_two_score = optional_score(player_two_score)
     db.commit()
-    return RedirectResponse("/admin/matches", status_code=303)
+    return league_redirect("/admin/matches", match.round.league)
 
 
 @router.post("/matches/{match_id}/scores", response_class=HTMLResponse)
@@ -348,24 +443,44 @@ def admin_update_match_scores(
     db.commit()
     db.refresh(match)
 
+    return match_row_or_redirect(request, match)
+
+
+@router.post("/matches/{match_id}/reset", response_class=HTMLResponse)
+def admin_reset_match_scores(
+    match_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+) -> Response:
+    match = db.get(Match, match_id)
+    if match is None:
+        return HTMLResponse("Match not found", status_code=404)
+
+    match.player_one_score = None
+    match.player_two_score = None
+    db.commit()
+    db.refresh(match)
+
+    return match_row_or_redirect(request, match)
+
+
+def match_row_or_redirect(request: Request, match: Match) -> Response:
+
     if request.headers.get("HX-Request") == "true":
-        return templates.TemplateResponse(
-            request=request,
-            name="admin/match_row.html",
-            context={"match": match},
-        )
-    return RedirectResponse("/admin/matches", status_code=303)
+        return templates.TemplateResponse(request=request, name="admin/match_row.html", context={"match": match})
+    return league_redirect("/admin/matches", match.round.league)
 
 
 @router.get("/army-lists", response_class=HTMLResponse)
-def admin_army_lists(request: Request, db: Session = Depends(get_db)) -> HTMLResponse:
-    players = list(db.scalars(select(Player).order_by(Player.name)))
-    rounds = list(db.scalars(select(Round).order_by(Round.number)))
-    army_lists = list(db.scalars(select(ArmyList).order_by(ArmyList.created_at.desc(), ArmyList.id.desc())))
+def admin_army_lists(
+    request: Request,
+    league_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+) -> HTMLResponse:
     return templates.TemplateResponse(
         request=request,
         name="admin/army_lists.html",
-        context={"players": players, "rounds": rounds, "army_lists": army_lists, "error": None, "army_list": None},
+        context=army_list_admin_context(db, league_id=league_id),
     )
 
 
@@ -377,18 +492,18 @@ def admin_import_army_list(
     json_text: str = Form(...),
     db: Session = Depends(get_db),
 ) -> HTMLResponse:
-    players = list(db.scalars(select(Player).order_by(Player.name)))
-    rounds = list(db.scalars(select(Round).order_by(Round.number)))
+    round_item = db.get(Round, round_id)
+    league_id = None if round_item is None else round_item.league_id
     try:
         army_list = import_army_list(db, player_id, round_id, json_text)
         error = None
+        league_id = army_list.round.league_id
     except ArmyListImportError as import_error:
         army_list = None
         error = str(import_error)
-    army_lists = list(db.scalars(select(ArmyList).order_by(ArmyList.created_at.desc(), ArmyList.id.desc())))
     return templates.TemplateResponse(
         request=request,
         name="admin/army_lists.html",
-        context={"players": players, "rounds": rounds, "army_lists": army_lists, "error": error, "army_list": army_list},
+        context=army_list_admin_context(db, league_id=league_id, error=error, army_list=army_list),
         status_code=400 if error else 200,
     )

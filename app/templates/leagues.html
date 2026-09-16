@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Leagues - Battle March{% endblock %}
+
+{% block content %}
+        <section class="page-header">
+            <div class="eyebrow">Leagues</div>
+            <h1>League Ledgers</h1>
+        </section>
+
+        <div class="round-grid">
+            {% for league in leagues %}
+                <div class="card round-card">
+                    <h2 class="h4">{{ league.name }}</h2>
+                    <p><a href="/leagues/{{ league.id }}/players">Leaderboard</a></p>
+                    <p class="mb-0"><a href="/leagues/{{ league.id }}/rounds">Rounds</a></p>
+                </div>
+            {% else %}
+                <div class="card round-card">No leagues have been created yet.</div>
+            {% endfor %}
+        </div>
+{% endblock %}
