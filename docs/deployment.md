@@ -32,40 +32,40 @@ Other reasonable options:
 
 I would start with Render or Railway, then only move to something more manual if cost or control becomes a real issue.
 
-## Current SQLite Assumptions To Fix
+## SQLite Assumptions Reviewed
 
-Before production, the code should stop assuming local SQLite.
+The code has been updated so local SQLite is now the development default, not the production assumption.
 
 ### 1. Database URL is hard-coded
 
-Current code in `app/database.py` always uses:
+`app/database.py` reads `DATABASE_URL` from the environment. If it is missing, local development falls back to:
 
 ```python
 DATABASE_PATH = Path(__file__).resolve().parent.parent / "battle_march.db"
 DATABASE_URL = f"sqlite:///{DATABASE_PATH}"
 ```
 
-Production should read from an environment variable:
+Production should set:
 
 ```text
 DATABASE_URL=postgresql+psycopg://...
 ```
 
-Local development can still default to SQLite when `DATABASE_URL` is missing.
+Render sometimes provides URLs starting with `postgresql://`; the app normalizes those to `postgresql+psycopg://` for SQLAlchemy.
 
 ### 2. SQLite-only engine option
 
-Current code passes:
+The app now only passes:
 
 ```python
 connect_args={"check_same_thread": False}
 ```
 
-That option is SQLite-specific. For PostgreSQL, the engine should only include it when the URL starts with `sqlite`.
+when the URL starts with `sqlite`.
 
 ### 3. PostgreSQL driver is missing
 
-`requirements.txt` currently has SQLAlchemy but no PostgreSQL driver. Add one before deployment:
+`requirements.txt` now includes:
 
 ```text
 psycopg[binary]
@@ -73,15 +73,13 @@ psycopg[binary]
 
 ### 4. Tables are created on application startup
 
-Current startup uses:
+Application startup now only auto-creates tables outside production by default. Production should use Alembic:
 
-```python
-Base.metadata.create_all(bind=engine)
+```bash
+PYTHONPATH=. alembic upgrade head
 ```
 
-This is acceptable for early local development. For production, it is better to run migrations explicitly. The next production-readiness step should add Alembic or a deliberately simple one-time initialization command.
-
-Recommendation: add Alembic before real production data exists.
+The initial migration lives in `migrations/versions/20260916_0001_initial_schema.py`.
 
 ### 5. The seed script drops all tables
 
@@ -92,9 +90,7 @@ Base.metadata.drop_all(bind=engine)
 Base.metadata.create_all(bind=engine)
 ```
 
-That is useful locally and dangerous in production. Keep it as a development-only command and never run it with the production `DATABASE_URL`.
-
-Before deployment, add a guard so it refuses to run when `BATTLE_MARCH_ENV=production`.
+That is useful locally and dangerous in production. It now refuses to run when `BATTLE_MARCH_ENV=production`.
 
 ### 6. Development import route is public
 
@@ -104,24 +100,24 @@ The app now has protected admin import at:
 /admin/army-lists
 ```
 
-But the older development import route still exists and is public:
+The older public development import route has been removed:
 
 ```text
 /dev/army-lists/import
 ```
 
-Before deployment, remove it or protect it behind admin authentication. For production, prefer removing it.
+Use `/admin/army-lists` instead.
 
 ### 7. Public league creation endpoints remain open
 
-These temporary endpoints still exist:
+These temporary endpoints have been removed:
 
 ```text
 POST /leagues
 GET /leagues/{league_id}
 ```
 
-`POST /leagues` is a public write endpoint. Before deployment, remove it or move it behind `/admin`.
+League creation is not exposed publicly.
 
 ### 8. One-league assumption
 
@@ -147,6 +143,18 @@ Generate the password hash locally:
 PYTHONPATH=. .venv/bin/python -m scripts.hash_password
 ```
 
+The hash contains `$` separators. In Render's environment variable editor, paste the generated hash exactly as printed, without surrounding quotes. If testing locally with `export`, wrap the value in single quotes so your shell does not treat `$...` as variable expansion:
+
+```bash
+export BATTLE_MARCH_ADMIN_PASSWORD_HASH='pbkdf2_sha256$260000$...'
+```
+
+You can verify a configured hash locally:
+
+```bash
+PYTHONPATH=. .venv/bin/python -m scripts.verify_admin_password
+```
+
 Generate a session secret locally:
 
 ```bash
@@ -157,31 +165,31 @@ Do not commit either value.
 
 ## Recommended Deployment Process On Render
 
-These steps assume the code has first been updated to support `DATABASE_URL` and PostgreSQL.
+These steps assume you have chosen Render and created an account.
 
 1. Push the repository to GitHub.
 
-2. Create a Render PostgreSQL database.
+1. Create a Render PostgreSQL database.
 
-3. Copy Render's internal database URL.
+1. Copy Render's internal database URL.
 
-4. Create a Render Web Service from the GitHub repository.
+1. Create a Render Web Service from the GitHub repository.
 
-5. Use the Python environment.
+1. Use the Python environment.
 
-6. Set the build command:
+1. Set the build command:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-7. Set the start command:
+1. Set the start command:
 
 ```bash
 uvicorn app.main:app --host 0.0.0.0 --port $PORT
 ```
 
-8. Add environment variables:
+1. Add environment variables:
 
 ```text
 BATTLE_MARCH_ENV=production
@@ -191,11 +199,15 @@ BATTLE_MARCH_SESSION_SECRET=<generated secret>
 BATTLE_MARCH_SECURE_COOKIES=true
 ```
 
-9. Run migrations or the chosen production schema initialization command.
+1. Run migrations from a one-off shell/job:
 
-10. Deploy the web service.
+```bash
+PYTHONPATH=. alembic upgrade head
+```
 
-11. Visit public pages:
+1. Deploy the web service.
+
+1. Visit public pages:
 
 ```text
 /
@@ -203,25 +215,30 @@ BATTLE_MARCH_SECURE_COOKIES=true
 /rounds
 ```
 
-12. Visit `/admin/login` and confirm the admin password works.
+1. Visit `/admin/login` and confirm the admin password works.
 
-13. Import a real Old World Builder JSON list through `/admin/army-lists`.
+1. Import a real Old World Builder JSON list through `/admin/army-lists`.
 
-14. Confirm the imported list appears from a public player profile and at `/army-lists/{id}`.
+1. Confirm the imported list appears from a public player profile and at `/army-lists/{id}`.
 
 ## Recommended Code Changes Before Deployment
 
-Do these in small increments:
+Completed:
 
 1. Add `DATABASE_URL` support in `app/database.py` and add `psycopg[binary]`.
-2. Protect or remove `/dev/army-lists/import`.
-3. Remove or protect `POST /leagues`.
-4. Add a production guard to `scripts/seed.py`.
-5. Add Alembic migrations.
-6. Add a short production smoke test/checklist.
+1. Remove `/dev/army-lists/import`.
+1. Remove `POST /leagues`.
+1. Add a production guard to `scripts/seed.py`.
+1. Add Alembic migrations.
+
+Still useful before going live:
+
+1. Add a short production smoke test/checklist.
+1. Decide how the first real production league row should be created.
+1. Consider a basic database backup/restore note once the platform is chosen.
 
 ## Deployment Readiness Summary
 
-The app is close to deployable for a small private league, but it should not be deployed as-is because it still hard-codes SQLite and leaves development write routes available publicly.
+The app is now much closer to deployable for a small private league. It no longer hard-codes SQLite for all environments and no longer exposes the old public development write routes.
 
-The lowest-friction path is to make the code read `DATABASE_URL`, remove/protect the development endpoints, add PostgreSQL driver support, then deploy to Render with managed PostgreSQL.
+The lowest-friction path is to deploy to Render with managed PostgreSQL, run Alembic migrations, log into `/admin`, then create/import the league data through protected admin pages.

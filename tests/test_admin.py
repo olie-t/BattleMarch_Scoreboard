@@ -32,6 +32,15 @@ def test_public_pages_do_not_require_admin_login() -> None:
     assert client.get("/rounds").status_code == 200
 
 
+def test_public_development_write_routes_are_removed() -> None:
+    seed_database()
+    client = TestClient(app)
+
+    assert client.get("/dev/army-lists/import").status_code == 404
+    assert client.post("/dev/army-lists/import").status_code == 404
+    assert client.post("/leagues", data={"name": "Open Write"}).status_code == 404
+
+
 def test_admin_pages_require_login() -> None:
     seed_database()
     client = TestClient(app)
