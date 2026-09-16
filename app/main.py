@@ -340,6 +340,62 @@ def admin_home(request: Request, _: None = Depends(require_admin)) -> HTMLRespon
     return templates.TemplateResponse(request=request, name="admin/home.html")
 
 
+@app.get("/admin/leagues", response_class=HTMLResponse)
+def admin_leagues(
+    request: Request,
+    _: None = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> HTMLResponse:
+    leagues = list(db.scalars(select(League).order_by(League.id.desc())))
+    return templates.TemplateResponse(
+        request=request,
+        name="admin/leagues.html",
+        context={"leagues": leagues},
+    )
+
+
+@app.post("/admin/leagues")
+def admin_create_league(
+    name: str = Form(...),
+    _: None = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> RedirectResponse:
+    db.add(League(name=name.strip()))
+    db.commit()
+    return RedirectResponse("/admin/leagues", status_code=303)
+
+
+@app.get("/admin/leagues/{league_id}/edit", response_class=HTMLResponse)
+def admin_edit_league_form(
+    league_id: int,
+    request: Request,
+    _: None = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> HTMLResponse:
+    league = db.get(League, league_id)
+    if league is None:
+        return HTMLResponse("League not found", status_code=404)
+    return templates.TemplateResponse(
+        request=request,
+        name="admin/league_edit.html",
+        context={"league": league},
+    )
+
+
+@app.post("/admin/leagues/{league_id}/edit")
+def admin_update_league(
+    league_id: int,
+    name: str = Form(...),
+    _: None = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> RedirectResponse:
+    league = db.get(League, league_id)
+    if league is not None:
+        league.name = name.strip()
+        db.commit()
+    return RedirectResponse("/admin/leagues", status_code=303)
+
+
 @app.get("/admin/players", response_class=HTMLResponse)
 def admin_players(
     request: Request,

@@ -4,9 +4,9 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 
 from app.auth import hash_password
-from app.database import SessionLocal
+from app.database import Base, SessionLocal, engine
 from app.main import app
-from app.models import ArmyList, Match, Player, Round
+from app.models import ArmyList, League, Match, Player, Round
 from scripts.seed import seed_database
 from tests.test_army_list_import import VALID_EXPORT
 
@@ -50,6 +50,10 @@ def test_admin_pages_require_login() -> None:
     assert response.status_code == 303
     assert response.headers["location"] == "/admin/login"
 
+    response = client.get("/admin/leagues", follow_redirects=False)
+    assert response.status_code == 303
+    assert response.headers["location"] == "/admin/login"
+
 
 def test_admin_login_and_logout(monkeypatch) -> None:
     seed_database()
@@ -71,9 +75,32 @@ def test_admin_pages_render(monkeypatch) -> None:
     seed_database()
     client = authenticated_client(monkeypatch)
 
-    for path in ("/admin", "/admin/players", "/admin/rounds", "/admin/matches", "/admin/army-lists"):
+    for path in ("/admin", "/admin/leagues", "/admin/players", "/admin/rounds", "/admin/matches", "/admin/army-lists"):
         response = client.get(path)
         assert response.status_code == 200
+
+
+def test_admin_can_create_and_edit_first_league_from_empty_database(monkeypatch) -> None:
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+    client = authenticated_client(monkeypatch)
+
+    response = client.get("/admin/leagues")
+    assert response.status_code == 200
+
+    response = client.post("/admin/leagues", data={"name": "The First Muster"})
+    assert response.status_code == 200
+
+    with SessionLocal() as db:
+        league = db.scalar(select(League).where(League.name == "The First Muster"))
+        assert league is not None
+        league_id = league.id
+
+    response = client.post(f"/admin/leagues/{league_id}/edit", data={"name": "The First Muster Revised"})
+    assert response.status_code == 200
+
+    with SessionLocal() as db:
+        assert db.scalar(select(League).where(League.name == "The First Muster Revised")) is not None
 
 
 def test_admin_can_add_and_edit_player(monkeypatch) -> None:

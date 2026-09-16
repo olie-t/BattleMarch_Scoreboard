@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Leagues - Battle March{% endblock %}
+
+{% block content %}
+        <p><a href="/admin">Back to admin</a></p>
+        <section class="page-header"><div class="eyebrow">Admin</div><h1>Leagues</h1></section>
+        <form class="admin-form row g-3 align-items-end" method="post" action="/admin/leagues">
+            <div class="col-md-8"><label class="form-label" for="name">League name</label><input class="form-control" id="name" name="name" required></div>
+            <div class="col-md-4"><button class="btn btn-dark" type="submit">Add league</button></div>
+        </form>
+
+        <div class="table-panel"><table class="table table-striped align-middle">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for league in leagues %}
+                    <tr>
+                        <td>{{ league.name }}</td>
+                        <td><a href="/admin/leagues/{{ league.id }}/edit">Edit</a></td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table></div>
+{% endblock %}
