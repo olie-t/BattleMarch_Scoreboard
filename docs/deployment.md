@@ -23,8 +23,10 @@ pip install -r requirements.txt
 Start command:
 
 ```bash
-uvicorn app.main:app --host 0.0.0.0 --port $PORT
+bash scripts/start.sh
 ```
+
+The start script runs Alembic migrations, then starts Uvicorn.
 
 ## Environment Variables
 
@@ -71,18 +73,18 @@ Do not commit secrets.
 
 ## Database Migrations
 
-After creating the Render PostgreSQL database and setting `DATABASE_URL`, run:
+The Render start command runs migrations automatically. If you need to repair an existing deployment manually, run:
 
 ```bash
 PYTHONPATH=. alembic upgrade head
 ```
 
-Run this from a Render shell or one-off job before using the admin area for real data.
+Run this from a Render shell or one-off job.
 
 ## First Production Setup
 
 1. Deploy the Render Web Service.
-1. Run the Alembic migration.
+1. Confirm the deploy logs show Alembic running successfully.
 1. Visit `/admin/login`.
 1. Log in with the configured admin password.
 1. Create the league at `/admin/leagues`.
