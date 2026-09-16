@@ -64,10 +64,10 @@ def build_leaderboard(db: Session, league_id: int) -> tuple[List[Round], List[di
         )
     )
 
-    match_by_player_and_round = {}
+    matches_by_player_and_round = {}
     for match in matches:
-        match_by_player_and_round[(match.player_one_id, match.round_id)] = match
-        match_by_player_and_round[(match.player_two_id, match.round_id)] = match
+        matches_by_player_and_round.setdefault((match.player_one_id, match.round_id), []).append(match)
+        matches_by_player_and_round.setdefault((match.player_two_id, match.round_id), []).append(match)
 
     score_by_player_and_round = {
         (score.player_id, score.round_id): score
@@ -83,9 +83,9 @@ def build_leaderboard(db: Session, league_id: int) -> tuple[List[Round], List[di
         total_league_points = 0
         total_victory_points = 0
         for round_item in rounds:
-            match = match_by_player_and_round.get((player.id, round_item.id))
+            player_matches = matches_by_player_and_round.get((player.id, round_item.id), [])
             score_row = score_by_player_and_round.get((player.id, round_item.id))
-            round_result = calculate_round_score(player.id, match, score_row)
+            round_result = calculate_round_score(player.id, player_matches, score_row)
             round_points[round_item.number] = round_result["league_points"]
             total_league_points += round_result["league_points"]
             total_victory_points += round_result["victory_points"]
@@ -113,34 +113,34 @@ def build_leaderboard(db: Session, league_id: int) -> tuple[List[Round], List[di
 
 def calculate_round_score(
     player_id: int,
-    match: Optional[Match],
+    matches: List[Match],
     score: Optional[PlayerRoundScore],
 ) -> dict:
     battle_result = "No match scheduled"
     victory_points = 0
-    result_points = 0
+    best_result_points = 0
+    best_game = None
+    completed_games = []
 
-    if score is not None and score.is_bye:
+    for match in matches:
+        game_result = calculate_game_result(player_id, match)
+        if game_result["battle_result"] == "Pending":
+            continue
+        completed_games.append(game_result)
+        if is_better_game_result(game_result, best_game):
+            best_result_points = game_result["result_points"]
+            victory_points = game_result["victory_points"]
+            best_game = game_result
+
+    if best_game is not None:
+        battle_result = best_game["battle_result"]
+    elif matches:
+        battle_result = "Pending"
+
+    if score is not None and score.is_bye and BYE_LEAGUE_POINTS > best_result_points:
         battle_result = "Bye"
-        result_points = BYE_LEAGUE_POINTS
-    elif match is not None:
-        is_player_one = match.player_one_id == player_id
-        player_victory_points = match.player_one_score if is_player_one else match.player_two_score
-        opponent_victory_points = match.player_two_score if is_player_one else match.player_one_score
-
-        if player_victory_points is None or opponent_victory_points is None:
-            battle_result = "Pending"
-        else:
-            victory_points = player_victory_points
-            if player_victory_points == opponent_victory_points:
-                battle_result = "Draw"
-                result_points = DRAW_LEAGUE_POINTS
-            elif player_victory_points > opponent_victory_points:
-                battle_result = "Win"
-                result_points = WIN_LEAGUE_POINTS
-            else:
-                battle_result = "Loss"
-                result_points = LOSS_LEAGUE_POINTS
+        best_result_points = BYE_LEAGUE_POINTS
+        victory_points = 0
 
     painting_points = PAINTING_PROGRESS_POINTS if score is not None and score.painting_progress else 0
     fully_painted_points = FULLY_PAINTED_POINTS if score is not None and score.fully_painted else 0
@@ -148,11 +148,54 @@ def calculate_round_score(
     return {
         "battle_result": battle_result,
         "victory_points": victory_points,
-        "result_points": result_points,
+        "result_points": best_result_points,
         "painting_points": painting_points,
         "fully_painted_points": fully_painted_points,
-        "league_points": result_points + painting_points + fully_painted_points,
+        "league_points": best_result_points + painting_points + fully_painted_points,
+        "completed_games": completed_games,
     }
+
+
+def calculate_game_result(player_id: int, match: Match) -> dict:
+    is_player_one = match.player_one_id == player_id
+    opponent = match.player_two if is_player_one else match.player_one
+    player_victory_points = match.player_one_score if is_player_one else match.player_two_score
+    opponent_victory_points = match.player_two_score if is_player_one else match.player_one_score
+
+    if player_victory_points is None or opponent_victory_points is None:
+        return {
+            "opponent": opponent,
+            "victory_score": "Not entered",
+            "battle_result": "Pending",
+            "victory_points": 0,
+            "result_points": 0,
+        }
+
+    if player_victory_points == opponent_victory_points:
+        battle_result = "Draw"
+        result_points = DRAW_LEAGUE_POINTS
+    elif player_victory_points > opponent_victory_points:
+        battle_result = "Win"
+        result_points = WIN_LEAGUE_POINTS
+    else:
+        battle_result = "Loss"
+        result_points = LOSS_LEAGUE_POINTS
+
+    return {
+        "opponent": opponent,
+        "victory_score": f"{player_victory_points}-{opponent_victory_points}",
+        "battle_result": battle_result,
+        "victory_points": player_victory_points,
+        "result_points": result_points,
+    }
+
+
+def is_better_game_result(candidate: dict, current_best: Optional[dict]) -> bool:
+    if current_best is None:
+        return True
+    if candidate["result_points"] != current_best["result_points"]:
+        return candidate["result_points"] > current_best["result_points"]
+    return candidate["victory_points"] > current_best["victory_points"]
 
 
 def build_match_row(match: Match) -> dict:
@@ -178,7 +221,9 @@ def build_player_detail(db: Session, player: Player) -> dict:
             .order_by(Match.round_id)
         )
     )
-    matches_by_round_id = {match.round_id: match for match in matches}
+    matches_by_round_id = {}
+    for match in matches:
+        matches_by_round_id.setdefault(match.round_id, []).append(match)
     army_lists = list(
         db.scalars(
             select(ArmyList)
@@ -199,41 +244,24 @@ def build_player_detail(db: Session, player: Player) -> dict:
 
     round_results = []
     for round_item in rounds:
-        match = matches_by_round_id.get(round_item.id)
+        player_matches = matches_by_round_id.get(round_item.id, [])
         round_score = score_by_round_id.get(round_item.id)
-        opponent = None
+        games = [calculate_game_result(player.id, match) for match in player_matches]
+        calculated_score = calculate_round_score(player.id, player_matches, round_score)
         victory_score = "Not played"
-        result = "No match scheduled"
-
-        if round_score is not None and round_score.is_bye:
-            result = "Bye"
+        if games:
+            victory_score = "; ".join(game["victory_score"] for game in games)
+        elif round_score is not None and round_score.is_bye:
             victory_score = "Bye"
-        elif match is not None:
-            is_player_one = match.player_one_id == player.id
-            opponent = match.player_two if is_player_one else match.player_one
-            player_score = match.player_one_score if is_player_one else match.player_two_score
-            opponent_score = match.player_two_score if is_player_one else match.player_one_score
-
-            if player_score is None or opponent_score is None:
-                victory_score = "Not entered"
-                result = "Pending"
-            else:
-                victory_score = f"{player_score}-{opponent_score}"
-                if player_score == opponent_score:
-                    result = "Draw"
-                elif player_score > opponent_score:
-                    result = "Win"
-                else:
-                    result = "Loss"
-        calculated_score = calculate_round_score(player.id, match, round_score)
 
         round_results.append(
             {
                 "round": round_item,
-                "opponent": opponent,
+                "opponent": games[0]["opponent"] if len(games) == 1 else None,
+                "games": games,
                 "score": victory_score,
                 "victory_score": victory_score,
-                "result": result,
+                "result": calculated_score["battle_result"],
                 "army_list": army_lists_by_round_id.get(round_item.id),
                 "points": calculated_score["league_points"],
                 "league_points": calculated_score["league_points"],

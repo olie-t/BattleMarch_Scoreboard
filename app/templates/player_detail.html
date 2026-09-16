@@ -20,8 +20,7 @@
             <thead>
                 <tr>
                     <th>Round</th>
-                    <th>Opponent</th>
-                    <th>Victory points</th>
+                    <th>Games</th>
                     <th>Result</th>
                     <th>Result LP</th>
                     <th>Painting</th>
@@ -36,15 +35,21 @@
                     <tr>
                         <td>Round {{ row.round.number }}</td>
                         <td>
-                            {% if row.opponent %}
-                                <a class="fw-semibold" href="/players/{{ row.opponent.id }}">{{ row.opponent.name }}</a>
+                            {% if row.games %}
+                                <ul class="mb-0 ps-3">
+                                    {% for game in row.games %}
+                                        <li>
+                                            <a class="fw-semibold" href="/players/{{ game.opponent.id }}">{{ game.opponent.name }}</a>:
+                                            {{ game.victory_score }}, {{ game.battle_result }} ({{ game.result_points }} LP)
+                                        </li>
+                                    {% endfor %}
+                                </ul>
                             {% elif row.result == "Bye" %}
                                 Bye
                             {% else %}
                                 No match scheduled
                             {% endif %}
                         </td>
-                        <td>{{ row.victory_score }}</td>
                         <td><span class="result-badge {{ result_class }}">{{ row.result }}</span></td>
                         <td>{{ row.result_points }}</td>
                         <td>{{ row.painting_points }}</td>

@@ -27,6 +27,22 @@ def test_seeded_round_points_and_totals() -> None:
     assert by_name["Alys Emberfall"]["total_victory_points"] == 23
 
 
+def test_best_game_result_counts_for_round_league_points() -> None:
+    _, standings = seeded_standings()
+    by_name = {standing["player"].name: standing for standing in standings}
+
+    assert by_name["Alys Emberfall"]["round_points"][1] == 4
+    assert by_name["Alys Emberfall"]["total_victory_points"] == 23
+
+
+def test_victory_points_come_from_best_game_result_only() -> None:
+    _, standings = seeded_standings()
+    by_name = {standing["player"].name: standing for standing in standings}
+
+    assert by_name["Alys Emberfall"]["total_victory_points"] == 23
+    assert by_name["Darius Vale"]["total_victory_points"] == 24
+
+
 def test_players_without_scored_matches_have_zero_points() -> None:
     _, standings = seeded_standings()
 

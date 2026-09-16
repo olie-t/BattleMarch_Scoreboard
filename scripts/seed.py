@@ -52,6 +52,13 @@ def seed_database() -> None:
             ),
             Match(
                 round=rounds[0],
+                player_one=players[0],
+                player_two=players[3],
+                player_one_score=9,
+                player_two_score=9,
+            ),
+            Match(
+                round=rounds[0],
                 player_one=players[4],
                 player_two=players[5],
             ),
@@ -85,7 +92,7 @@ def seed_database() -> None:
         db.add_all(rounds + matches + round_scores)
         db.commit()
 
-        print("Seeded 1 league, 8 players, 3 rounds, and 6 matches.")
+        print("Seeded 1 league, 8 players, 3 rounds, and 7 matches.")
         print("Pending matches have NULL victory points; no army lists were created.")
 
 
