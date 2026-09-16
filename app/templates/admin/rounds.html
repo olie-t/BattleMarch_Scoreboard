@@ -34,8 +34,11 @@
                             <td>Round {{ round_item.number }}</td>
                             <td>{{ round_item.points_limit }}</td>
                             <td>
-                                <a href="/admin/rounds/{{ round_item.id }}/edit">Edit</a>
-                                <a href="/admin/rounds/{{ round_item.id }}/scores">League points</a>
+                                <a class="btn btn-sm btn-outline-dark" href="/admin/rounds/{{ round_item.id }}/edit">Edit</a>
+                                <a class="btn btn-sm btn-outline-dark" href="/admin/rounds/{{ round_item.id }}/scores">League points</a>
+                                <form class="d-inline" method="post" action="/admin/rounds/{{ round_item.id }}/delete">
+                                    <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
+                                </form>
                             </td>
                         </tr>
                     {% endfor %}

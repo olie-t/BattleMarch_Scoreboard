@@ -296,6 +296,98 @@ def test_admin_can_reset_match_scores_with_htmx(monkeypatch) -> None:
         assert match.player_two_score is None
 
 
+def test_admin_can_delete_match(monkeypatch) -> None:
+    seed_database()
+    client = authenticated_client(monkeypatch)
+
+    with SessionLocal() as db:
+        match = db.scalar(select(Match).where(Match.player_one_id == 1, Match.player_two_id == 2))
+        assert match is not None
+        match_id = match.id
+
+    response = client.post(f"/admin/matches/{match_id}/delete")
+    assert response.status_code == 200
+
+    with SessionLocal() as db:
+        assert db.get(Match, match_id) is None
+
+
+def test_admin_can_delete_army_list(monkeypatch) -> None:
+    seed_database()
+    client = authenticated_client(monkeypatch)
+    client.post(
+        "/admin/army-lists",
+        data={"player_id": "1", "round_id": "1", "json_text": json.dumps(VALID_EXPORT)},
+    )
+
+    with SessionLocal() as db:
+        army_list = db.scalar(select(ArmyList).where(ArmyList.player_id == 1, ArmyList.round_id == 1))
+        assert army_list is not None
+        army_list_id = army_list.id
+
+    response = client.post(f"/admin/army-lists/{army_list_id}/delete")
+    assert response.status_code == 200
+
+    with SessionLocal() as db:
+        assert db.get(ArmyList, army_list_id) is None
+
+
+def test_admin_can_delete_player_and_dependent_rows(monkeypatch) -> None:
+    seed_database()
+    client = authenticated_client(monkeypatch)
+    client.post(
+        "/admin/army-lists",
+        data={"player_id": "1", "round_id": "1", "json_text": json.dumps(VALID_EXPORT)},
+    )
+
+    response = client.post("/admin/players/1/delete")
+    assert response.status_code == 200
+
+    with SessionLocal() as db:
+        assert db.get(Player, 1) is None
+        assert db.scalar(select(Match).where((Match.player_one_id == 1) | (Match.player_two_id == 1))) is None
+        assert db.scalar(select(ArmyList).where(ArmyList.player_id == 1)) is None
+        assert db.scalar(select(PlayerRoundScore).where(PlayerRoundScore.player_id == 1)) is None
+
+
+def test_admin_can_delete_round_and_dependent_rows(monkeypatch) -> None:
+    seed_database()
+    client = authenticated_client(monkeypatch)
+    client.post(
+        "/admin/army-lists",
+        data={"player_id": "1", "round_id": "1", "json_text": json.dumps(VALID_EXPORT)},
+    )
+
+    response = client.post("/admin/rounds/1/delete")
+    assert response.status_code == 200
+
+    with SessionLocal() as db:
+        assert db.get(Round, 1) is None
+        assert db.scalar(select(Match).where(Match.round_id == 1)) is None
+        assert db.scalar(select(ArmyList).where(ArmyList.round_id == 1)) is None
+        assert db.scalar(select(PlayerRoundScore).where(PlayerRoundScore.round_id == 1)) is None
+
+
+def test_admin_can_delete_league_and_dependent_rows(monkeypatch) -> None:
+    seed_database()
+    client = authenticated_client(monkeypatch)
+    client.post(
+        "/admin/army-lists",
+        data={"player_id": "1", "round_id": "1", "json_text": json.dumps(VALID_EXPORT)},
+    )
+
+    response = client.post("/admin/leagues/1/delete")
+    assert response.status_code == 200
+
+    with SessionLocal() as db:
+        assert db.get(League, 1) is None
+        assert db.scalar(select(Player)) is None
+        assert db.scalar(select(Round)) is None
+        assert db.scalar(select(Match)) is None
+        assert db.scalar(select(ArmyList)) is None
+        assert db.scalar(select(PlayerRoundScore)) is None
+
+
 def test_admin_can_import_army_list(monkeypatch) -> None:
     seed_database()
     client = authenticated_client(monkeypatch)

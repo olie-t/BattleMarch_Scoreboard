@@ -46,5 +46,8 @@
         >
             <button class="btn btn-sm btn-outline-danger" type="submit">Reset match</button>
         </form>
+        <form class="d-inline" method="post" action="/admin/matches/{{ match.id }}/delete">
+            <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
+        </form>
     </td>
 </tr>

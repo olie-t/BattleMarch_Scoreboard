@@ -54,6 +54,7 @@
                     <th>Round</th>
                     <th>Faction</th>
                     <th>Points</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -64,6 +65,11 @@
                         <td>Round {{ list.round.number }}</td>
                         <td>{{ list.faction.replace("-", " ").title() }}</td>
                         <td>{{ list.points }}</td>
+                        <td>
+                            <form class="d-inline" method="post" action="/admin/army-lists/{{ list.id }}/delete">
+                                <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
+                            </form>
+                        </td>
                     </tr>
                 {% endfor %}
             </tbody>

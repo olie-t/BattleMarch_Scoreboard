@@ -2,7 +2,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Form, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
-from sqlalchemy import select
+from sqlalchemy import delete, or_, select
 from sqlalchemy.orm import Session
 
 from app.army_list_import import ArmyListImportError, import_army_list
@@ -116,6 +116,38 @@ def match_players_belong_to_round_league(db: Session, round_id: int, player_one_
     return player_one.league_id == round_item.league_id and player_two.league_id == round_item.league_id
 
 
+def delete_league_data(db: Session, league: League) -> None:
+    round_ids = [round_item.id for round_item in league.rounds]
+    player_ids = [player.id for player in league.players]
+
+    if round_ids:
+        db.execute(delete(Match).where(Match.round_id.in_(round_ids)))
+        db.execute(delete(ArmyList).where(ArmyList.round_id.in_(round_ids)))
+        db.execute(delete(PlayerRoundScore).where(PlayerRoundScore.round_id.in_(round_ids)))
+        db.execute(delete(Round).where(Round.id.in_(round_ids)))
+
+    if player_ids:
+        db.execute(delete(ArmyList).where(ArmyList.player_id.in_(player_ids)))
+        db.execute(delete(PlayerRoundScore).where(PlayerRoundScore.player_id.in_(player_ids)))
+        db.execute(delete(Player).where(Player.id.in_(player_ids)))
+
+    db.delete(league)
+
+
+def delete_round_data(db: Session, round_item: Round) -> None:
+    db.execute(delete(Match).where(Match.round_id == round_item.id))
+    db.execute(delete(ArmyList).where(ArmyList.round_id == round_item.id))
+    db.execute(delete(PlayerRoundScore).where(PlayerRoundScore.round_id == round_item.id))
+    db.delete(round_item)
+
+
+def delete_player_data(db: Session, player: Player) -> None:
+    db.execute(delete(Match).where(or_(Match.player_one_id == player.id, Match.player_two_id == player.id)))
+    db.execute(delete(ArmyList).where(ArmyList.player_id == player.id))
+    db.execute(delete(PlayerRoundScore).where(PlayerRoundScore.player_id == player.id))
+    db.delete(player)
+
+
 @router.get("", response_class=HTMLResponse)
 def admin_home(request: Request) -> HTMLResponse:
     return templates.TemplateResponse(request=request, name="admin/home.html")
@@ -165,6 +197,15 @@ def admin_update_league(
     league = db.get(League, league_id)
     if league is not None:
         league.name = name.strip()
+        db.commit()
+    return RedirectResponse("/admin/leagues", status_code=303)
+
+
+@router.post("/leagues/{league_id}/delete")
+def admin_delete_league(league_id: int, db: Session = Depends(get_db)) -> RedirectResponse:
+    league = db.get(League, league_id)
+    if league is not None:
+        delete_league_data(db, league)
         db.commit()
     return RedirectResponse("/admin/leagues", status_code=303)
 
@@ -220,6 +261,16 @@ def admin_update_player(
     return RedirectResponse("/admin/players", status_code=303)
 
 
+@router.post("/players/{player_id}/delete")
+def admin_delete_player(player_id: int, db: Session = Depends(get_db)) -> RedirectResponse:
+    player = db.get(Player, player_id)
+    league = None if player is None else player.league
+    if player is not None:
+        delete_player_data(db, player)
+        db.commit()
+    return league_redirect("/admin/players", league)
+
+
 @router.get("/rounds", response_class=HTMLResponse)
 def admin_rounds(
     request: Request,
@@ -272,6 +323,16 @@ def admin_update_round(
         db.commit()
         return league_redirect("/admin/rounds", round_item.league)
     return RedirectResponse("/admin/rounds", status_code=303)
+
+
+@router.post("/rounds/{round_id}/delete")
+def admin_delete_round(round_id: int, db: Session = Depends(get_db)) -> RedirectResponse:
+    round_item = db.get(Round, round_id)
+    league = None if round_item is None else round_item.league
+    if round_item is not None:
+        delete_round_data(db, round_item)
+        db.commit()
+    return league_redirect("/admin/rounds", league)
 
 
 @router.get("/rounds/{round_id}/scores", response_class=HTMLResponse)
@@ -464,6 +525,16 @@ def admin_reset_match_scores(
     return match_row_or_redirect(request, match)
 
 
+@router.post("/matches/{match_id}/delete")
+def admin_delete_match(match_id: int, db: Session = Depends(get_db)) -> RedirectResponse:
+    match = db.get(Match, match_id)
+    league = None if match is None else match.round.league
+    if match is not None:
+        db.delete(match)
+        db.commit()
+    return league_redirect("/admin/matches", league)
+
+
 def match_row_or_redirect(request: Request, match: Match) -> Response:
 
     if request.headers.get("HX-Request") == "true":
@@ -507,3 +578,13 @@ def admin_import_army_list(
         context=army_list_admin_context(db, league_id=league_id, error=error, army_list=army_list),
         status_code=400 if error else 200,
     )
+
+
+@router.post("/army-lists/{army_list_id}/delete")
+def admin_delete_army_list(army_list_id: int, db: Session = Depends(get_db)) -> RedirectResponse:
+    army_list = db.get(ArmyList, army_list_id)
+    league = None if army_list is None else army_list.round.league
+    if army_list is not None:
+        db.delete(army_list)
+        db.commit()
+    return league_redirect("/admin/army-lists", league)
