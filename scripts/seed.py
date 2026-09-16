@@ -1,7 +1,7 @@
 import os
 
 from app.database import Base, SessionLocal, engine
-from app.models import League, Match, Player, Round
+from app.models import League, Match, Player, PlayerRoundScore, Round
 
 
 def reset_database() -> None:
@@ -75,12 +75,18 @@ def seed_database() -> None:
                 player_two_score=6,
             ),
         ]
+        round_scores = [
+            PlayerRoundScore(player=players[0], round=rounds[0], painting_progress=True),
+            PlayerRoundScore(player=players[1], round=rounds[0], fully_painted=True),
+            PlayerRoundScore(player=players[3], round=rounds[2], fully_painted=True),
+            PlayerRoundScore(player=players[6], round=rounds[1], is_bye=True),
+        ]
 
-        db.add_all(rounds + matches)
+        db.add_all(rounds + matches + round_scores)
         db.commit()
 
         print("Seeded 1 league, 8 players, 3 rounds, and 6 matches.")
-        print("Pending matches have NULL scores; no army lists were created.")
+        print("Pending matches have NULL victory points; no army lists were created.")
 
 
 if __name__ == "__main__":

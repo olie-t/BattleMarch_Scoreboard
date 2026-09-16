@@ -7,7 +7,7 @@
             <section class="page-header">
                 <div class="eyebrow">Leaderboard</div>
                 <h1>{{ league.name }}</h1>
-                <p class="mb-0 text-muted-bm">Standings are calculated from completed match scores.</p>
+                <p class="mb-0 text-muted-bm">Standings use league points, with total victory points as the tie-breaker.</p>
             </section>
             <div class="table-panel">
             <table class="table table-striped table-hover align-middle">
@@ -17,9 +17,10 @@
                         <th>Player</th>
                         <th>Faction</th>
                         {% for round_item in rounds %}
-                            <th>Round {{ round_item.number }}</th>
+                            <th>Round {{ round_item.number }} LP</th>
                         {% endfor %}
-                        <th>Total</th>
+                        <th>League points</th>
+                        <th>Victory points</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -27,11 +28,12 @@
                         <tr>
                             <th class="leaderboard-position" scope="row">{{ loop.index }}</th>
                             <td><a class="fw-semibold" href="/players/{{ standing.player.id }}">{{ standing.player.name }}</a></td>
-                            <td>{{ standing.faction or "Not submitted" }}</td>
+                            <td>{{ standing.faction_display or "Not submitted" }}</td>
                             {% for round_item in rounds %}
                                 <td>{{ standing.round_points[round_item.number] }}</td>
                             {% endfor %}
-                            <td class="points-total">{{ standing.total_points }}</td>
+                            <td class="points-total">{{ standing.total_league_points }}</td>
+                            <td>{{ standing.total_victory_points }}</td>
                         </tr>
                     {% endfor %}
                 </tbody>

@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import List, Optional
 
-from sqlalchemy import DateTime, ForeignKey, Integer, JSON, String
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, JSON, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -25,6 +25,7 @@ class Player(Base):
 
     league: Mapped[League] = relationship(back_populates="players")
     army_lists: Mapped[List["ArmyList"]] = relationship(back_populates="player")
+    round_scores: Mapped[List["PlayerRoundScore"]] = relationship(back_populates="player")
     matches_as_player_one: Mapped[List["Match"]] = relationship(
         foreign_keys="Match.player_one_id",
         back_populates="player_one",
@@ -46,6 +47,7 @@ class Round(Base):
     league: Mapped[League] = relationship(back_populates="rounds")
     matches: Mapped[List["Match"]] = relationship(back_populates="round")
     army_lists: Mapped[List["ArmyList"]] = relationship(back_populates="round")
+    player_scores: Mapped[List["PlayerRoundScore"]] = relationship(back_populates="round")
 
 
 class Match(Base):
@@ -91,3 +93,18 @@ class ArmyList(Base):
 
     player: Mapped[Player] = relationship(back_populates="army_lists")
     round: Mapped[Round] = relationship(back_populates="army_lists")
+
+
+class PlayerRoundScore(Base):
+    __tablename__ = "player_round_scores"
+    __table_args__ = (UniqueConstraint("player_id", "round_id"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    player_id: Mapped[int] = mapped_column(ForeignKey("players.id"))
+    round_id: Mapped[int] = mapped_column(ForeignKey("rounds.id"))
+    is_bye: Mapped[bool] = mapped_column(Boolean, default=False)
+    painting_progress: Mapped[bool] = mapped_column(Boolean, default=False)
+    fully_painted: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    player: Mapped[Player] = relationship(back_populates="round_scores")
+    round: Mapped[Round] = relationship(back_populates="player_scores")

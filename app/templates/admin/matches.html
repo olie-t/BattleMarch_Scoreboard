@@ -23,7 +23,7 @@
                             <option value="{{ player.id }}">{{ player.name }}</option>
                         {% endfor %}
                     </select>
-                    <label class="form-label mt-2" for="player_one_score">Score</label>
+                    <label class="form-label mt-2" for="player_one_score">Victory points</label>
                     <input class="form-control" id="player_one_score" name="player_one_score" type="number" min="0">
                 </div>
                 <div class="col-md-3">
@@ -33,7 +33,7 @@
                             <option value="{{ player.id }}">{{ player.name }}</option>
                         {% endfor %}
                     </select>
-                    <label class="form-label mt-2" for="player_two_score">Score</label>
+                    <label class="form-label mt-2" for="player_two_score">Victory points</label>
                     <input class="form-control" id="player_two_score" name="player_two_score" type="number" min="0">
                 </div>
                 <div class="col-md-3"><button class="btn btn-dark" type="submit">Add match</button></div>
@@ -44,9 +44,9 @@
                     <tr>
                         <th>Round</th>
                         <th>Player 1</th>
-                        <th>Score</th>
+                        <th>Victory points</th>
                         <th>Player 2</th>
-                        <th>Score</th>
+                        <th>Victory points</th>
                         <th>Actions</th>
                     </tr>
                 </thead>

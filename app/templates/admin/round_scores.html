@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Round {{ round_item.number }} League Points - Battle March{% endblock %}
+
+{% block content %}
+        <p><a href="/admin/rounds">Back to rounds</a></p>
+        <section class="page-header">
+            <div class="eyebrow">Admin</div>
+            <h1>Round {{ round_item.number }} league points</h1>
+        </section>
+
+        <form class="admin-form" method="post" action="/admin/rounds/{{ round_item.id }}/scores">
+            <div class="table-panel"><table class="table table-striped align-middle">
+                <thead>
+                    <tr>
+                        <th>Player</th>
+                        <th>Bye</th>
+                        <th>Painting progress</th>
+                        <th>Fully painted</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for player in players %}
+                        {% set score = scores_by_player_id.get(player.id) %}
+                        <tr>
+                            <td>{{ player.name }}</td>
+                            <td><input type="checkbox" name="bye_{{ player.id }}" {% if score and score.is_bye %}checked{% endif %}></td>
+                            <td><input type="checkbox" name="painting_progress_{{ player.id }}" {% if score and score.painting_progress %}checked{% endif %}></td>
+                            <td><input type="checkbox" name="fully_painted_{{ player.id }}" {% if score and score.fully_painted %}checked{% endif %}></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table></div>
+            <button class="btn btn-dark mt-3" type="submit">Save league points</button>
+        </form>
+{% endblock %}

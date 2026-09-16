@@ -8,7 +8,7 @@
             <div class="eyebrow">Army List</div>
             <h1>{{ view.army_list.name }}</h1>
             <div class="army-summary">
-                <span>Faction: {{ view.army_list.faction }}</span>
+                <span>Faction: {{ view.faction_display }}</span>
                 <span>Points: <strong>{{ view.army_list.points }}</strong></span>
                 <span>Round {{ view.army_list.round.number }}</span>
                 <span>Player: <a href="/players/{{ view.army_list.player.id }}">{{ view.army_list.player.name }}</a></span>

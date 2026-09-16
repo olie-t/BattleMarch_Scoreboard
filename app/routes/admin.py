@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.army_list_import import ArmyListImportError, import_army_list
 from app.auth import require_admin
 from app.database import get_db
-from app.models import ArmyList, League, Match, Player, Round
+from app.models import ArmyList, League, Match, Player, PlayerRoundScore, Round
 from app.scoreboard import current_league, optional_score
 from app.templating import templates
 
@@ -171,6 +171,53 @@ def admin_update_round(
         round_item.points_limit = points_limit
         db.commit()
     return RedirectResponse("/admin/rounds", status_code=303)
+
+
+@router.get("/rounds/{round_id}/scores", response_class=HTMLResponse)
+def admin_round_scores(
+    round_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+) -> HTMLResponse:
+    round_item = db.get(Round, round_id)
+    if round_item is None:
+        return HTMLResponse("Round not found", status_code=404)
+    players = list(db.scalars(select(Player).where(Player.league_id == round_item.league_id).order_by(Player.name)))
+    scores = list(db.scalars(select(PlayerRoundScore).where(PlayerRoundScore.round_id == round_id)))
+    scores_by_player_id = {score.player_id: score for score in scores}
+    return templates.TemplateResponse(
+        request=request,
+        name="admin/round_scores.html",
+        context={"round_item": round_item, "players": players, "scores_by_player_id": scores_by_player_id},
+    )
+
+
+@router.post("/rounds/{round_id}/scores")
+async def admin_update_round_scores(
+    round_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+) -> RedirectResponse:
+    round_item = db.get(Round, round_id)
+    if round_item is None:
+        return RedirectResponse("/admin/rounds", status_code=303)
+
+    form = await request.form()
+    players = list(db.scalars(select(Player).where(Player.league_id == round_item.league_id).order_by(Player.name)))
+    scores = list(db.scalars(select(PlayerRoundScore).where(PlayerRoundScore.round_id == round_id)))
+    scores_by_player_id = {score.player_id: score for score in scores}
+
+    for player in players:
+        score = scores_by_player_id.get(player.id)
+        if score is None:
+            score = PlayerRoundScore(player_id=player.id, round_id=round_id)
+            db.add(score)
+        score.is_bye = f"bye_{player.id}" in form
+        score.painting_progress = f"painting_progress_{player.id}" in form
+        score.fully_painted = f"fully_painted_{player.id}" in form
+
+    db.commit()
+    return RedirectResponse(f"/admin/rounds/{round_id}/scores", status_code=303)
 
 
 @router.get("/matches", response_class=HTMLResponse)

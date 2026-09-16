@@ -6,7 +6,7 @@ from sqlalchemy import select
 from app.auth import hash_password
 from app.database import Base, SessionLocal, engine
 from app.main import app
-from app.models import ArmyList, League, Match, Player, Round
+from app.models import ArmyList, League, Match, Player, PlayerRoundScore, Round
 from scripts.seed import seed_database
 from tests.test_army_list_import import VALID_EXPORT
 
@@ -143,6 +143,31 @@ def test_admin_can_add_and_edit_round(monkeypatch) -> None:
     with SessionLocal() as db:
         round_item = db.get(Round, round_id)
         assert round_item.points_limit == 2000
+
+
+def test_admin_can_update_round_league_points(monkeypatch) -> None:
+    seed_database()
+    client = authenticated_client(monkeypatch)
+
+    response = client.get("/admin/rounds/1/scores")
+    assert response.status_code == 200
+
+    response = client.post(
+        "/admin/rounds/1/scores",
+        data={
+            "bye_8": "on",
+            "painting_progress_8": "on",
+            "fully_painted_8": "on",
+        },
+    )
+    assert response.status_code == 200
+
+    with SessionLocal() as db:
+        score = db.scalar(select(PlayerRoundScore).where(PlayerRoundScore.player_id == 8, PlayerRoundScore.round_id == 1))
+        assert score is not None
+        assert score.is_bye is True
+        assert score.painting_progress is True
+        assert score.fully_painted is True
 
 
 def test_admin_can_add_match_and_edit_scores(monkeypatch) -> None:

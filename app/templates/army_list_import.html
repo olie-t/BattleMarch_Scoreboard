@@ -11,7 +11,7 @@
 
         {% if army_list %}
             <div class="alert alert-success">
-                Imported {{ army_list.name }} for Round {{ army_list.round.number }}. Faction: {{ army_list.faction }}. Points: {{ army_list.points }}.
+                Imported {{ army_list.name }} for Round {{ army_list.round.number }}. Faction: {{ army_list.faction.replace("-", " ").title() }}. Points: {{ army_list.points }}.
             </div>
         {% endif %}
 

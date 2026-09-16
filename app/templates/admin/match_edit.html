@@ -22,7 +22,7 @@
                         <option value="{{ player.id }}" {% if player.id == match.player_one_id %}selected{% endif %}>{{ player.name }}</option>
                     {% endfor %}
                 </select>
-                <label class="form-label mt-2" for="player_one_score">Score</label>
+                <label class="form-label mt-2" for="player_one_score">Victory points</label>
                 <input class="form-control" id="player_one_score" name="player_one_score" type="number" min="0" value="{{ match.player_one_score if match.player_one_score is not none else "" }}">
             </div>
             <div class="col-md-4">
@@ -32,7 +32,7 @@
                         <option value="{{ player.id }}" {% if player.id == match.player_two_id %}selected{% endif %}>{{ player.name }}</option>
                     {% endfor %}
                 </select>
-                <label class="form-label mt-2" for="player_two_score">Score</label>
+                <label class="form-label mt-2" for="player_two_score">Victory points</label>
                 <input class="form-control" id="player_two_score" name="player_two_score" type="number" min="0" value="{{ match.player_two_score if match.player_two_score is not none else "" }}">
             </div>
             <div class="col-12"><button class="btn btn-dark" type="submit">Save match</button></div>

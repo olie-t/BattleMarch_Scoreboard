@@ -51,7 +51,7 @@
                         <td><a href="/army-lists/{{ list.id }}">{{ list.name }}</a></td>
                         <td>{{ list.player.name }}</td>
                         <td>Round {{ list.round.number }}</td>
-                        <td>{{ list.faction }}</td>
+                        <td>{{ list.faction.replace("-", " ").title() }}</td>
                         <td>{{ list.points }}</td>
                     </tr>
                 {% endfor %}

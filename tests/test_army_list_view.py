@@ -92,6 +92,7 @@ def test_render_real_old_world_builder_export_has_units() -> None:
         view = render_army_list(army_list)
 
         sections = {section["label"]: section["units"] for section in view["sections"]}
+        assert view["faction_display"] == "Orc And Goblin Tribes"
         assert len(sections["Characters"]) == 2
         assert len(sections["Core"]) == 2
         assert len(sections["Special"]) == 1

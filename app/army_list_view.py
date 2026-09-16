@@ -1,5 +1,6 @@
 from typing import Any
 
+from app.display import format_faction
 from app.models import ArmyList
 
 
@@ -182,5 +183,6 @@ def render_army_list(army_list: ArmyList) -> dict[str, Any]:
 
     return {
         "army_list": army_list,
+        "faction_display": format_faction(army_list.faction),
         "sections": sections,
     }

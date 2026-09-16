@@ -24,7 +24,10 @@
                         <tr>
                             <td>Round {{ round_item.number }}</td>
                             <td>{{ round_item.points_limit }}</td>
-                            <td><a href="/admin/rounds/{{ round_item.id }}/edit">Edit</a></td>
+                            <td>
+                                <a href="/admin/rounds/{{ round_item.id }}/edit">Edit</a>
+                                <a href="/admin/rounds/{{ round_item.id }}/scores">League points</a>
+                            </td>
                         </tr>
                     {% endfor %}
                 </tbody>

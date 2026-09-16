@@ -8,8 +8,9 @@
             <div class="eyebrow">Player Profile</div>
             <h1>{{ player_detail.player.name }}</h1>
             <div class="army-summary">
-                <span>Faction: {{ player_detail.faction or "Not submitted" }}</span>
-                <span>Current total: <strong>{{ player_detail.total_points }}</strong></span>
+                <span>Faction: {{ player_detail.faction_display or "Not submitted" }}</span>
+                <span>League points: <strong>{{ player_detail.total_league_points }}</strong></span>
+                <span>Victory points: <strong>{{ player_detail.total_victory_points }}</strong></span>
             </div>
         </section>
 
@@ -20,9 +21,12 @@
                 <tr>
                     <th>Round</th>
                     <th>Opponent</th>
-                    <th>Score</th>
+                    <th>Victory points</th>
                     <th>Result</th>
-                    <th>Points</th>
+                    <th>Result LP</th>
+                    <th>Painting</th>
+                    <th>Fully painted</th>
+                    <th>Round LP</th>
                     <th>Army list</th>
                 </tr>
             </thead>
@@ -34,13 +38,18 @@
                         <td>
                             {% if row.opponent %}
                                 <a class="fw-semibold" href="/players/{{ row.opponent.id }}">{{ row.opponent.name }}</a>
+                            {% elif row.result == "Bye" %}
+                                Bye
                             {% else %}
                                 No match scheduled
                             {% endif %}
                         </td>
-                        <td>{{ row.score }}</td>
+                        <td>{{ row.victory_score }}</td>
                         <td><span class="result-badge {{ result_class }}">{{ row.result }}</span></td>
-                        <td class="fw-semibold">{{ row.points }}</td>
+                        <td>{{ row.result_points }}</td>
+                        <td>{{ row.painting_points }}</td>
+                        <td>{{ row.fully_painted_points }}</td>
+                        <td class="fw-semibold">{{ row.league_points }}</td>
                         <td>
                             {% if row.army_list %}
                                 <a href="/army-lists/{{ row.army_list.id }}">{{ row.army_list.name }}</a>
