@@ -45,6 +45,11 @@ def _normalize_section_key(label: str) -> Optional[str]:
     return _SECTION_KEY_ALIASES.get(" ".join(tokens))
 
 
+def _is_divider_line(line: str) -> bool:
+    stripped = line.strip()
+    return bool(stripped) and set(stripped) == {"="}
+
+
 def parse_old_world_builder_json(json_text: str) -> ParsedArmyList:
     try:
         data = json.loads(json_text)
@@ -81,13 +86,13 @@ def parse_old_world_builder_text(text: str) -> ParsedArmyList:
     lines = text.splitlines()
     total_lines = len(lines)
 
-    def next_nonblank(start: int) -> int:
+    def skip_ignorable(start: int) -> int:
         index = start
-        while index < total_lines and not lines[index].strip():
+        while index < total_lines and (not lines[index].strip() or _is_divider_line(lines[index])):
             index += 1
         return index
 
-    index = next_nonblank(0)
+    index = skip_ignorable(0)
     if index >= total_lines:
         raise ArmyListImportError("Text export is empty.")
 
@@ -100,7 +105,7 @@ def parse_old_world_builder_text(text: str) -> ParsedArmyList:
     points = int(name_match.group("points"))
     index += 1
 
-    index = next_nonblank(index)
+    index = skip_ignorable(index)
     if index >= total_lines:
         raise ArmyListImportError("Text export is missing the game/faction header line.")
     header_parts = [part.strip() for part in lines[index].strip().split(",")]
@@ -112,9 +117,7 @@ def parse_old_world_builder_text(text: str) -> ParsedArmyList:
     composition = header_parts[2] if len(header_parts) > 2 and header_parts[2] else None
     index += 1
 
-    index = next_nonblank(index)
-    if index < total_lines and lines[index].strip() == "===":
-        index += 1
+    index = skip_ignorable(index)
 
     sections: dict[str, list[dict[str, Any]]] = {}
     current_section: Optional[str] = None
@@ -135,7 +138,7 @@ def parse_old_world_builder_text(text: str) -> ParsedArmyList:
         stripped = lines[index].strip()
         index += 1
 
-        if not stripped:
+        if not stripped or _is_divider_line(stripped):
             continue
         if stripped == "---":
             break
