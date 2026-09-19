@@ -2,11 +2,46 @@ from pathlib import Path
 
 import pytest
 
-from app.army_list_import import import_army_list
+from app.army_list_import import import_army_list, parse_old_world_builder_text
 from app.army_list_view import render_army_list
 from app.database import SessionLocal
 from app.models import ArmyList, Player, Round, League
 from scripts.seed import seed_database
+
+
+def test_render_standard_text_import_totals_unit_costs() -> None:
+    parsed = parse_old_world_builder_text(
+        "Gorzags Gang [393 pts]\n"
+        "Warhammer: The Old World, Orc & Goblin Tribes, Battle March\n"
+        "\n"
+        "++ Characters [85 pts] ++\n"
+        "\n"
+        "Night Goblin Oddgit [85 pts]\n"
+        "- Hand weapon\n"
+        "- Wizard [Level 2 Wizard]\n"
+        "\n"
+        "---\n"
+    )
+    league = League(name="Test League")
+    player = Player(name="Alys", league=league)
+    round_item = Round(number=1, points_limit=1000, league=league)
+    army_list = ArmyList(
+        player=player,
+        round=round_item,
+        name=parsed.name,
+        points=parsed.points,
+        faction=parsed.faction,
+        data=parsed.data,
+    )
+
+    view = render_army_list(army_list)
+    unit = view["sections"][0]["units"][0]
+
+    assert unit["name"] == "Night Goblin Oddgit"
+    assert unit["total_cost"] == 85
+    assert "Hand weapon" in unit["options"]
+    assert unit["special_rules"] == []
+    assert unit["command"] == []
 
 
 def test_render_army_list_includes_selected_choices_only() -> None:
