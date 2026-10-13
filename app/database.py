@@ -11,6 +11,8 @@ DATABASE_PATH = Path(__file__).resolve().parent.parent / "battle_march.db"
 DEFAULT_DATABASE_URL = f"sqlite:///{DATABASE_PATH}"
 DATABASE_URL = os.environ.get("DATABASE_URL", DEFAULT_DATABASE_URL)
 
+print(f"DEBUG DATABASE_URL: {repr(DATABASE_URL)}")
+
 if DATABASE_URL.startswith("postgresql://"):
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg://", 1)
 
