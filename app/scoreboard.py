@@ -90,7 +90,7 @@ def build_leaderboard(db: Session, league_id: int) -> tuple[List[Round], List[di
         for round_item in rounds:
             player_matches = matches_by_player_and_round.get((player.id, round_item.id), [])
             score_row = score_by_player_and_round.get((player.id, round_item.id))
-            round_result = calculate_round_score(player.id, player_matches, score_row)
+            round_result = calculate_round_score(player.id, player_matches, score_row, db)
             round_points[round_item.number] = round_result["league_points"]
             total_league_points += round_result["league_points"]
             total_victory_points += round_result["victory_points"]
@@ -120,6 +120,7 @@ def calculate_round_score(
     player_id: int,
     matches: List[Match],
     score: Optional[PlayerRoundScore],
+    db: Session,
 ) -> dict:
     battle_result = "No match scheduled"
     victory_points = 0
@@ -128,7 +129,7 @@ def calculate_round_score(
     completed_games = []
 
     for match in matches:
-        game_result = calculate_game_result(player_id, match)
+        game_result = calculate_game_result(player_id, match, db)
         if game_result["battle_result"] == "Pending":
             continue
         completed_games.append(game_result)
@@ -264,8 +265,8 @@ def build_player_detail(db: Session, player: Player) -> dict:
     for round_item in rounds:
         player_matches = matches_by_round_id.get(round_item.id, [])
         round_score = score_by_round_id.get(round_item.id)
-        games = [calculate_game_result(player.id, match) for match in player_matches]
-        calculated_score = calculate_round_score(player.id, player_matches, round_score)
+        games = [calculate_game_result(player.id, match, db) for match in player_matches]
+        calculated_score = calculate_round_score(player.id, player_matches, round_score, db)
         victory_score = "Not played"
         if games:
             victory_score = "; ".join(game["victory_score"] for game in games)
