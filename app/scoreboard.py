@@ -14,6 +14,11 @@ LOSS_LEAGUE_POINTS = 1
 PAINTING_PROGRESS_POINTS = 1
 FULLY_PAINTED_POINTS = 1
 
+def GetRoundPointLimit(db: Session, round_id: int):
+    round_item = db.get(Round, round_id)
+    if round_item is None:
+        return None
+    return round_item.points_limit
 
 def current_league(db: Session) -> Optional[League]:
     return db.scalar(select(League).order_by(League.id.desc()))
@@ -156,11 +161,22 @@ def calculate_round_score(
     }
 
 
-def calculate_game_result(player_id: int, match: Match) -> dict:
+def calculate_game_result(player_id: int, match: Match, db: Session) -> dict:
     is_player_one = match.player_one_id == player_id
     opponent = match.player_two if is_player_one else match.player_one
     player_victory_points = match.player_one_score if is_player_one else match.player_two_score
     opponent_victory_points = match.player_two_score if is_player_one else match.player_one_score
+
+    round_point_limit = GetRoundPointLimit(db, match.round_id)
+
+    if round_point_limit is None or round_point_limit == 0:
+        return {
+            "opponent": opponent,
+            "victory_score": "Not entered",
+            "battle_result": "Pending",
+            "victory_points": 0,
+            "result_points": 0,
+        }       
 
     if player_victory_points is None or opponent_victory_points is None:
         return {
@@ -171,7 +187,9 @@ def calculate_game_result(player_id: int, match: Match) -> dict:
             "result_points": 0,
         }
 
-    if player_victory_points == opponent_victory_points:
+    ten_percent_of_round_point_limit = round_point_limit * 0.1
+    
+    if abs(player_victory_points - opponent_victory_points) <= ten_percent_of_round_point_limit:
         battle_result = "Draw"
         result_points = DRAW_LEAGUE_POINTS
     elif player_victory_points > opponent_victory_points:
@@ -281,3 +299,6 @@ def build_player_detail(db: Session, player: Player) -> dict:
         "total_victory_points": standing["total_victory_points"],
         "round_results": round_results,
     }
+
+
+
