@@ -561,21 +561,31 @@ def admin_import_army_list(
     player_id: int = Form(...),
     round_id: int = Form(...),
     json_text: str = Form(...),
+    total_points: str = Form(""),
     db: Session = Depends(get_db),
 ) -> HTMLResponse:
     round_item = db.get(Round, round_id)
     league_id = None if round_item is None else round_item.league_id
     try:
-        army_list = import_army_list(db, player_id, round_id, json_text)
+        try:
+            entered_points = int(total_points) if total_points.strip() else None
+        except ValueError:
+            raise ArmyListImportError("Total army points must be a non-negative whole number.")
+        if entered_points is not None and entered_points < 0:
+            raise ArmyListImportError("Total army points must be a non-negative whole number.")
+        army_list = import_army_list(db, player_id, round_id, json_text, total_points=entered_points)
         error = None
         league_id = army_list.round.league_id
     except ArmyListImportError as import_error:
         army_list = None
         error = str(import_error)
+    context = army_list_admin_context(db, league_id=league_id, error=error, army_list=army_list)
+    if error:
+        context.update(import_text=json_text, total_points=total_points, selected_player_id=player_id, selected_round_id=round_id)
     return templates.TemplateResponse(
         request=request,
         name="admin/army_lists.html",
-        context=army_list_admin_context(db, league_id=league_id, error=error, army_list=army_list),
+        context=context,
         status_code=400 if error else 200,
     )
 

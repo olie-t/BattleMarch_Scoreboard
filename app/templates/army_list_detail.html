@@ -28,7 +28,7 @@
                                 {% if unit["points"] is not none %}{% if unit["strength"] %}, {% endif %}{{ unit["points"] }} points each{% endif %}
                                 {% if unit["base_total"] %}, base {{ unit["base_total"] }} points{% endif %}
                             </p>
-                            <p class="points-total">Total unit cost: {{ unit["total_cost"] }} points</p>
+                            <p class="points-total">Total unit cost: {% if unit["total_cost"] is none %}Not provided{% else %}{{ unit["total_cost"] }} points{% endif %}</p>
                             {% if unit["upgrade_costs"] %}
                                 <h4 class="h6">Selected costs</h4>
                                 <ul>
@@ -43,7 +43,7 @@
                                         </li>
                                     {% endfor %}
                                 </ul>
-                            {% else %}
+                            {% elif unit["total_cost"] is not none %}
                                 <p class="text-muted-bm">No selected upgrades with additional points.</p>
                             {% endif %}
                             <dl class="detail-list">
@@ -70,6 +70,10 @@
                                 {% if unit["items"] %}
                                     <dt>Items</dt>
                                     <dd>{{ unit["items"] | join(", ") }}</dd>
+                                {% endif %}
+                                {% if unit["traits"] %}
+                                    <dt>Traits</dt>
+                                    <dd>{{ unit["traits"] | join(", ") }}</dd>
                                 {% endif %}
                                 {% if unit["special_rules"] %}
                                     <dt>Special rules</dt>

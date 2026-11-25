@@ -1,0 +1,134 @@
+{
+  "id": "c73f66df-91e2-42e2-983a-1d5f53ca0b89",
+  "name": "Elf n Safety",
+  "builderEditedAt": "2026-11-25T10:08:11.353Z",
+  "factionId": "tow/high-elf-realms",
+  "forceTemplateId": "tow/high-elf-realms/grand-army",
+  "ruleset": {
+    "gameSystemId": "the-old-world",
+    "gameVersionId": "tow-1.5.4"
+  },
+  "compositionRuleIds": [
+    "tow/battle-march"
+  ],
+  "pointsLimit": 600,
+  "units": [
+    {
+      "id": "0fa3fbbb-a785-4f8d-853b-6ccb3b940949",
+      "unitEntryId": "tow/high-elf-realms/lothern-sea-guard",
+      "quantity": 15,
+      "selectedOptions": [
+        {
+          "groupId": "lothern-sea-guard-default-armour",
+          "optionId": "light-armour"
+        },
+        {
+          "groupId": "lothern-sea-guard-default-equipment",
+          "optionId": "hand-weapons-thrusting-spears-warbows"
+        },
+        {
+          "groupId": "lothern-sea-guard-default-equipment",
+          "optionId": "warbows"
+        },
+        {
+          "groupId": "lothern-sea-guard-equipment",
+          "optionId": "shields"
+        },
+        {
+          "groupId": "lothern-sea-guard-command",
+          "optionId": "sea-master"
+        },
+        {
+          "groupId": "lothern-sea-guard-command",
+          "optionId": "standard-bearer"
+        }
+      ],
+      "traitIds": [
+        "tow/common/banner-of-swirling-wind"
+      ]
+    },
+    {
+      "id": "bca422f4-41a6-4a63-9f8e-e84c1aa8e41c",
+      "unitEntryId": "tow/high-elf-realms/noble",
+      "quantity": 1,
+      "selectedOptions": [
+        {
+          "groupId": "noble-mount",
+          "optionId": "on-foot"
+        },
+        {
+          "groupId": "noble-general",
+          "optionId": "general"
+        },
+        {
+          "groupId": "noble-shield",
+          "optionId": "shield"
+        },
+        {
+          "groupId": "noble-weapon",
+          "optionId": "hand-weapon"
+        },
+        {
+          "groupId": "noble-bow",
+          "optionId": "warbow"
+        },
+        {
+          "groupId": "noble-armour",
+          "optionId": "heavy-armour"
+        }
+      ],
+      "traitIds": [
+        "tow/high-elf-realms/elven-honours/sea-guard"
+      ]
+    },
+    {
+      "id": "bef23003-02d2-4776-91dd-d99f85c4f9ae",
+      "unitEntryId": "tow/high-elf-realms/lothern-skycutters",
+      "quantity": 1,
+      "selectedOptions": [
+        {
+          "groupId": "lothern-skycutters-default-equipment",
+          "optionId": "cavalry-spears-shortbows-wicked-claws-swiftfeather-roc"
+        },
+        {
+          "groupId": "lothern-skycutters-upgrades",
+          "optionId": "eagle-eye-bolt-thrower"
+        }
+      ],
+      "traitIds": [],
+      "categoryOverride": "special"
+    },
+    {
+      "id": "f32bfb7a-3cc8-42e9-96e3-21b1b768995b",
+      "unitEntryId": "tow/high-elf-realms/lion-chariot-of-chrace",
+      "quantity": 1,
+      "selectedOptions": [
+        {
+          "groupId": "lion-chariot-of-chrace-default-equipment",
+          "optionId": "chracian-great-blades"
+        }
+      ],
+      "traitIds": []
+    },
+    {
+      "id": "498f0a49-a45a-429f-8a11-4e4dbee1c6fb",
+      "unitEntryId": "tow/high-elf-realms/shadow-warriors",
+      "quantity": 5,
+      "selectedOptions": [
+        {
+          "groupId": "shadow-warriors-default-armour",
+          "optionId": "light-armour"
+        },
+        {
+          "groupId": "shadow-warriors-default-equipment",
+          "optionId": "longbows"
+        },
+        {
+          "groupId": "shadow-warriors-command",
+          "optionId": "shadow-walker"
+        }
+      ],
+      "traitIds": []
+    }
+  ]
+}

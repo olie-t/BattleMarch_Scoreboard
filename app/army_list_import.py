@@ -196,10 +196,113 @@ def parse_old_world_builder_text(text: str) -> ParsedArmyList:
     return ParsedArmyList(name=name, points=points, faction=faction, data=data)
 
 
-def parse_old_world_builder_export(text: str) -> ParsedArmyList:
-    if text.lstrip().startswith("{"):
+def _rankings_name(identifier: Any, label: str) -> str:
+    if not isinstance(identifier, str) or not identifier.strip() or not identifier.strip().split("/")[-1]:
+        raise ArmyListImportError(f"Old World Rankings export is missing a valid {label}.")
+    return identifier.strip().split("/")[-1].replace("-", " ").title()
+
+
+def _normalize_rankings_units(data: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
+    units = data.get("units")
+    if not isinstance(units, list):
+        raise ArmyListImportError("Old World Rankings export must contain a units array.")
+
+    sections: dict[str, list[dict[str, Any]]] = {}
+    for unit in units:
+        if not isinstance(unit, dict):
+            raise ArmyListImportError("Each Old World Rankings unit must be a JSON object.")
+        name = _rankings_name(unit.get("unitEntryId"), "unitEntryId")
+        quantity = unit.get("quantity")
+        if type(quantity) is not int or quantity <= 0:
+            raise ArmyListImportError(f"{name} must have a positive integer quantity.")
+
+        category = unit.get("categoryOverride")
+        if category is None:
+            section_key = "unclassified"
+        elif isinstance(category, str) and _normalize_section_key(category):
+            section_key = _normalize_section_key(category)
+        else:
+            raise ArmyListImportError(f"{name} has an unrecognized categoryOverride.")
+
+        selected_options = unit.get("selectedOptions", [])
+        traits = unit.get("traitIds", [])
+        if not isinstance(selected_options, list) or not isinstance(traits, list):
+            raise ArmyListImportError(f"{name} options and traits must be arrays.")
+        options = []
+        for option in selected_options:
+            if not isinstance(option, dict):
+                raise ArmyListImportError(f"{name} contains an invalid selected option.")
+            options.append({
+                "name_en": _rankings_name(option.get("optionId"), "optionId"),
+                "active": True,
+            })
+        normalized_traits = [
+            {"name_en": _rankings_name(trait, "traitId"), "active": True}
+            for trait in traits
+        ]
+        sections.setdefault(section_key, []).append({
+            "name_en": name,
+            "strength": quantity,
+            "points": None,
+            "cost_unknown": True,
+            "options": options,
+            "traits": normalized_traits,
+        })
+    return sections
+
+
+def parse_old_world_rankings_json(
+    json_text: str, total_points: Optional[int] = None,
+) -> ParsedArmyList:
+    try:
+        data = json.loads(json_text)
+    except json.JSONDecodeError as error:
+        raise ArmyListImportError(f"Invalid JSON: {error.msg}") from error
+    if not isinstance(data, dict):
+        raise ArmyListImportError("Old World Rankings export must be a JSON object.")
+    ruleset = data.get("ruleset")
+    if not isinstance(ruleset, dict) or ruleset.get("gameSystemId") != "the-old-world":
+        raise ArmyListImportError("Old World Rankings export must be for The Old World.")
+    name = data.get("name")
+    if not isinstance(name, str) or not name.strip():
+        raise ArmyListImportError("Army list is missing a valid top-level name.")
+    faction_id = data.get("factionId")
+    if not isinstance(faction_id, str) or not faction_id.startswith("tow/"):
+        raise ArmyListImportError("Old World Rankings export is missing a valid factionId.")
+    _rankings_name(faction_id, "factionId")
+    sections = _normalize_rankings_units(data)
+    if type(total_points) is not int or total_points < 0:
+        raise ArmyListImportError(
+            "Enter the actual total army points for the Old World Rankings list. "
+            "The export contains no unit costs or total cost; pointsLimit is only the army's limit."
+        )
+    faction = faction_id.split("/", 1)[1]
+    normalized = {
+        "game": "the-old-world",
+        "source": "old-world-rankings",
+        "name": name.strip(),
+        "points": total_points,
+        "army": faction,
+        "source_export": data,
+        **sections,
+    }
+    return ParsedArmyList(name=name.strip(), points=total_points, faction=faction, data=normalized)
+
+
+def parse_army_list_export(text: str, total_points: Optional[int] = None) -> ParsedArmyList:
+    if text.lstrip().startswith(("{", "[")):
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError as error:
+            raise ArmyListImportError(f"Invalid JSON: {error.msg}") from error
+        if isinstance(data, dict) and ("ruleset" in data or "factionId" in data):
+            return parse_old_world_rankings_json(text, total_points=total_points)
         return parse_old_world_builder_json(text)
     return parse_old_world_builder_text(text)
+
+
+def parse_old_world_builder_export(text: str) -> ParsedArmyList:
+    return parse_army_list_export(text)
 
 
 def import_army_list(
@@ -207,8 +310,9 @@ def import_army_list(
     player_id: int,
     round_id: int,
     json_text: str,
+    total_points: Optional[int] = None,
 ) -> ArmyList:
-    parsed = parse_old_world_builder_export(json_text)
+    parsed = parse_army_list_export(json_text, total_points=total_points)
     player = db.get(Player, player_id)
     if player is None:
         raise ArmyListImportError("Player does not exist.")

@@ -11,9 +11,10 @@ SECTION_LABELS = {
     "rare": "Rare",
     "mercenaries": "Mercenaries",
     "allies": "Allies",
+    "unclassified": "Category not provided",
 }
 
-OPTIONAL_SECTIONS = {"special", "rare", "mercenaries", "allies"}
+OPTIONAL_SECTIONS = {"special", "rare", "mercenaries", "allies", "unclassified"}
 
 
 def display_name(value: Any) -> str:
@@ -155,15 +156,16 @@ def render_unit(unit: dict[str, Any]) -> dict[str, Any]:
         "name": display_name(unit),
         "strength": unit.get("strength"),
         "points": unit.get("points"),
-        "base_total": base_total,
+        "base_total": None if unit.get("cost_unknown") else base_total,
         "upgrade_costs": upgrade_costs,
-        "total_cost": base_total + sum(cost["total"] for cost in upgrade_costs),
+        "total_cost": None if unit.get("cost_unknown") else base_total + sum(cost["total"] for cost in upgrade_costs),
         "command": chosen_names(unit.get("command")),
         "equipment": chosen_names(unit.get("equipment")),
         "armour": chosen_names(unit.get("armor")) or chosen_names(unit.get("armour")),
         "mounts": chosen_names(unit.get("mounts")),
         "options": chosen_names(unit.get("options")),
         "items": chosen_names(unit.get("items")),
+        "traits": chosen_names(unit.get("traits")),
         "special_rules": special_rules(unit),
     }
 
@@ -172,7 +174,7 @@ def render_army_list(army_list: ArmyList) -> dict[str, Any]:
     sections = []
     for section_key, section_label in SECTION_LABELS.items():
         units = army_list.data.get(section_key, [])
-        if section_key in OPTIONAL_SECTIONS and not units:
+        if not units and (section_key in OPTIONAL_SECTIONS or army_list.data.get("source") == "old-world-rankings"):
             continue
         sections.append(
             {

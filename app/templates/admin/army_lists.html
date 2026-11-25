@@ -25,7 +25,7 @@
                 <label class="form-label" for="player_id">Player</label>
                 <select class="form-select" id="player_id" name="player_id" required>
                     {% for player in players %}
-                        <option value="{{ player.id }}">{{ player.name }}</option>
+                        <option value="{{ player.id }}" {% if selected_player_id == player.id %}selected{% endif %}>{{ player.name }}</option>
                     {% endfor %}
                 </select>
             </p>
@@ -33,13 +33,18 @@
                 <label class="form-label" for="round_id">Round</label>
                 <select class="form-select" id="round_id" name="round_id" required>
                     {% for round_item in rounds %}
-                        <option value="{{ round_item.id }}">Round {{ round_item.number }}</option>
+                        <option value="{{ round_item.id }}" {% if selected_round_id == round_item.id %}selected{% endif %}>Round {{ round_item.number }}</option>
                     {% endfor %}
                 </select>
             </p>
             <p>
-                <label class="form-label" for="json_text">Old World Builder export (JSON or text)</label>
-                <textarea class="form-control" id="json_text" name="json_text" rows="12" required></textarea>
+                <label class="form-label" for="json_text">Army export (Old World Builder JSON/text or Old World Rankings JSON)</label>
+                <textarea class="form-control" id="json_text" name="json_text" rows="12" required>{{ import_text or "" }}</textarea>
+            </p>
+            <p>
+                <label class="form-label" for="total_points">Total army points (Old World Rankings only)</label>
+                <input class="form-control" id="total_points" name="total_points" type="number" min="0" step="1" value="{{ total_points or '' }}" aria-describedby="points-help">
+                <small id="points-help" class="text-muted-bm">Enter the actual list cost, not its points limit. Old World Rankings JSON does not include costs. Leave blank for Old World Builder.</small>
             </p>
             <button class="btn btn-dark" type="submit">Import army list</button>
         </form>

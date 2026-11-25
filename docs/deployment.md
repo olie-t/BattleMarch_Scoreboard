@@ -91,7 +91,7 @@ Run this from a Render shell or one-off job.
 1. Add rounds at `/admin/rounds`.
 1. Add players at `/admin/players`.
 1. Add matches and scores at `/admin/matches`.
-1. Import Old World Builder JSON lists at `/admin/army-lists`.
+1. Import Old World Builder JSON/text or Old World Rankings JSON lists at `/admin/army-lists`. For Old World Rankings, enter the actual total army points manually; its JSON includes a points limit but no costs. Unit costs and unspecified unit categories display as not provided.
 1. Confirm public pages render correctly:
 
 ```text
