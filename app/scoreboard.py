@@ -188,9 +188,7 @@ def calculate_game_result(player_id: int, match: Match, db: Session) -> dict:
             "result_points": 0,
         }
 
-    ten_percent_of_round_point_limit = round_point_limit * 0.1
-    
-    if abs(player_victory_points - opponent_victory_points) <= ten_percent_of_round_point_limit:
+    if abs(player_victory_points - opponent_victory_points) * 10 <= round_point_limit:
         battle_result = "Draw"
         result_points = DRAW_LEAGUE_POINTS
     elif player_victory_points > opponent_victory_points:
@@ -217,15 +215,14 @@ def is_better_game_result(candidate: dict, current_best: Optional[dict]) -> bool
     return candidate["victory_points"] > current_best["victory_points"]
 
 
-def build_match_row(match: Match) -> dict:
-    if match.player_one_score is None or match.player_two_score is None:
-        result = "Pending"
-    elif match.player_one_score == match.player_two_score:
-        result = "Draw"
-    elif match.player_one_score > match.player_two_score:
+def build_match_row(match: Match, db: Session) -> dict:
+    game_result = calculate_game_result(match.player_one_id, match, db)
+    if game_result["battle_result"] == "Win":
         result = f"{match.player_one.name} won"
-    else:
+    elif game_result["battle_result"] == "Loss":
         result = f"{match.player_two.name} won"
+    else:
+        result = game_result["battle_result"]
 
     return {"match": match, "result": result}
 

@@ -125,7 +125,7 @@ def round_detail(
         name="round_detail.html",
         context={
             "round_item": round_item,
-            "matches": [build_match_row(match) for match in matches],
+            "matches": [build_match_row(match, db) for match in matches],
         },
     )
 

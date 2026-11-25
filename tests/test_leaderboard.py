@@ -19,10 +19,10 @@ def test_seeded_round_points_and_totals() -> None:
     assert [round_item.number for round_item in rounds] == [1, 2, 3]
     by_name = {standing["player"].name: standing for standing in standings}
 
-    assert by_name["Darius Vale"]["round_points"] == {1: 2, 2: 0, 3: 4}
-    assert by_name["Darius Vale"]["total_league_points"] == 6
+    assert by_name["Darius Vale"]["round_points"] == {1: 2, 2: 0, 3: 3}
+    assert by_name["Darius Vale"]["total_league_points"] == 5
     assert by_name["Darius Vale"]["total_victory_points"] == 24
-    assert by_name["Alys Emberfall"]["round_points"] == {1: 4, 2: 1, 3: 0}
+    assert by_name["Alys Emberfall"]["round_points"] == {1: 3, 2: 2, 3: 0}
     assert by_name["Alys Emberfall"]["total_league_points"] == 5
     assert by_name["Alys Emberfall"]["total_victory_points"] == 23
 
@@ -31,7 +31,7 @@ def test_best_game_result_counts_for_round_league_points() -> None:
     _, standings = seeded_standings()
     by_name = {standing["player"].name: standing for standing in standings}
 
-    assert by_name["Alys Emberfall"]["round_points"][1] == 4
+    assert by_name["Alys Emberfall"]["round_points"][1] == 3
     assert by_name["Alys Emberfall"]["total_victory_points"] == 23
 
 
@@ -59,7 +59,7 @@ def test_byes_and_painting_awards_count_as_league_points() -> None:
 
     assert by_name["Gwen Hearthward"]["round_points"] == {1: 0, 2: 2, 3: 0}
     assert by_name["Gwen Hearthward"]["total_league_points"] == 2
-    assert by_name["Borin Oakshield"]["round_points"][1] == 2
+    assert by_name["Borin Oakshield"]["round_points"][1] == 3
 
 
 def test_standings_are_sorted_by_total_points() -> None:
